@@ -7,7 +7,7 @@
     <style>
         body {
             background-color: #000;
-            color: #0f0; /* Matrix Green */
+            color: #ff003c; /* Red for offline status */
             font-family: 'Courier New', Courier, monospace;
             display: flex;
             flex-direction: column;
@@ -20,23 +20,34 @@
         }
 
         .container {
-            border: 2px solid #0f0;
+            border: 2px solid #ff003c;
             padding: 40px;
-            box-shadow: 0 0 20px #0f0;
+            box-shadow: 0 0 20px #ff003c;
             max-width: 600px;
-            background: rgba(0, 20, 0, 0.8);
+            background: rgba(20, 0, 0, 0.8);
         }
 
         h1 {
             font-size: 3rem;
             margin: 0 0 20px 0;
             text-transform: uppercase;
-            text-shadow: 2px 2px 0px #003300;
+            text-shadow: 2px 2px 0px #330000;
         }
 
         p {
             font-size: 1.2rem;
             line-height: 1.6;
+        }
+
+        .instruction {
+            margin-top: 30px;
+            font-size: 1rem;
+            color: #fff;
+            background: #333;
+            padding: 8px 15px;
+            display: inline-block;
+            border-radius: 4px;
+            border: 1px solid #555;
         }
 
         .blink {
@@ -47,31 +58,12 @@
             50% { opacity: 0; }
         }
 
-        .back-btn {
-            margin-top: 30px;
-            padding: 10px 25px;
-            background-color: #000;
-            color: #0f0;
-            border: 1px solid #0f0;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 1rem;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: 0.2s;
-        }
-
-        .back-btn:hover {
-            background-color: #0f0;
-            color: #000;
-        }
-
-        /* Scanline effect for that CRT vibe */
+        /* Scanline effect for retro vibe */
         .scanline {
             width: 100%;
             height: 100px;
             z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(32, 255, 77, 0.1) 50%, rgba(0,0,0,0) 100%);
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
             opacity: 0.1;
             position: absolute;
             bottom: 100%;
@@ -90,14 +82,18 @@
     <div class="scanline"></div>
 
     <div class="container">
+        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
         <h1>SYSTEM OFFLINE</h1>
+        
         <p>
             User has not uploaded game cartridge yet.<br>
             Please stand by...<span class="blink">_</span>
         </p>
-        
-        <!-- Links back to the main Arcade Menu (assuming one folder up) -->
-        <a href="../index.html" class="back-btn">RETURN TO LOBBY</a>
+
+        <!-- Tells the user how to get back without using a recursive link -->
+        <div class="instruction">
+            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+        </div>
     </div>
 
 </body>
