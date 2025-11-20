@@ -251,11 +251,7 @@
             <div class="status-text">Scanning...</div>
         </div>
 
-        <!-- Saalvan -->
-        <div class="game-card" data-url="./Saalvan/index.html">
-            <h3>Saalvan</h3>
-            <div class="status-text">Scanning...</div>
-        </div>
+        <!-- Saalvan Removed -->
 
         <!-- Ameer -->
         <div class="game-card" data-url="./Ameer/index.html">
@@ -314,14 +310,17 @@
                             card.onclick = () => openGame(url);
                         }
                     } else {
-                        // File doesn't exist (404)
+                        // File doesn't exist (404) - Treat as Missing
                         card.classList.add('status-offline');
-                        statusLabel.innerText = "FILE NOT FOUND";
+                        statusLabel.innerText = "MISSING CARTRIDGE";
+                        card.onclick = () => alert("This student has not uploaded their game yet.");
                     }
                 } catch (error) {
-                    console.error("Error checking " + url);
+                    // Network error (likely folder missing) - Treat as Missing
+                    // console.error("Error checking " + url); // Suppressed console error
                     card.classList.add('status-offline');
-                    statusLabel.innerText = "ERROR";
+                    statusLabel.innerText = "MISSING CARTRIDGE";
+                    card.onclick = () => alert("This student has not uploaded their game yet.");
                 }
             });
         });
