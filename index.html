@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Science Arcade 2025</title>
     <style>
-        /* --- BASIC STYLING --- */
         body {
             background-color: #121212;
             color: #00ff9d;
@@ -14,7 +13,11 @@
             margin: 0;
         }
 
-        /* --- THE GRID --- */
+        h1 {
+            text-shadow: 0 0 10px #00ff9d;
+            margin-top: 30px;
+        }
+
         .arcade-container {
             padding: 20px;
             display: flex;
@@ -22,37 +25,75 @@
             justify-content: center;
             gap: 20px;
         }
+
         .game-card {
-            border: 2px solid #00ff9d;
+            border: 2px solid #555;
             width: 200px;
             padding: 20px;
             cursor: pointer;
             transition: 0.3s;
-        }
-        .game-card:hover {
-            background-color: #00ff9d;
-            color: #121212;
+            position: relative;
+            background: #222;
+            color: #777;
+            pointer-events: none; /* Disabled until scan finishes */
         }
 
-        /* --- THE MODAL (THE FRAME) --- */
+        /* --- DYNAMIC STATUS STYLES --- */
+        
+        /* READY TO PLAY */
+        .game-card.status-online {
+            border-color: #00ff9d;
+            background-color: #121212;
+            color: #00ff9d;
+            pointer-events: auto; /* Enable clicking */
+        }
+        .game-card.status-online:hover {
+            background-color: #00ff9d;
+            color: #121212;
+            transform: scale(1.05);
+        }
+
+        /* MISSING CARTRIDGE */
+        .game-card.status-offline {
+            border-color: #ff003c;
+            color: #ff003c;
+            background: repeating-linear-gradient(
+                45deg,
+                #1a0000,
+                #1a0000 10px,
+                #2a0000 10px,
+                #2a0000 20px
+            );
+            pointer-events: auto;
+        }
+        .game-card.status-offline:hover {
+            opacity: 0.8;
+        }
+
+        /* STATUS TEXT */
+        .status-text {
+            font-size: 0.8rem;
+            margin-top: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* --- MODAL STUFF --- */
         #gameModal {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background-color: rgba(0,0,0,0.95);
             z-index: 1000;
             flex-direction: column;
         }
 
-        /* --- THE EXIT BUTTON --- */
         #closeBtn {
             align-self: center;
             margin: 10px;
             padding: 10px 40px;
-            background: red;
+            background: #ff003c;
             color: white;
             border: none;
             font-weight: bold;
@@ -61,7 +102,6 @@
             border-radius: 5px;
         }
 
-        /* --- THE IFRAME (THE GAME SCREEN) --- */
         iframe {
             flex-grow: 1;
             width: 100%;
@@ -72,154 +112,95 @@
 <body>
 
     <h1>🧪 SCIENCE ARCADE 🧪</h1>
+    <p>Scanning cartridges...</p>
 
-<div class="arcade-container">
+    <div class="arcade-container">
 
-    <div class="game-card" onclick="openGame('./Ehaan/index.html')">
-        <h3>Ehaan</h3>
-        <p>Click to Play</p>
+        <!-- 
+           IMPORTANT: 
+           1. We use data-url instead of onclick directly.
+           2. The ID must match the Folder Name for the logic to be clear.
+        -->
+
+        <!-- Ehaan -->
+        <div class="game-card" data-url="./Ehaan/index.html">
+            <h3>Ehaan</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Viaan -->
+        <div class="game-card" data-url="./Viaan/index.html">
+            <h3>Viaan</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+        
+        <!-- PASTE THE REST OF YOUR STUDENTS HERE IN THIS FORMAT -->
+        <!-- Make sure to change the data-url and the Name H3 -->
+
     </div>
 
-    <div class="game-card" onclick="openGame('./Viaan/index.html')">
-        <h3>Viaan</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Maya/index.html')">
-        <h3>Maya</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Bashir/index.html')">
-        <h3>Bashir</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Mohamed/index.html')">
-        <h3>Mohamed</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Basid/index.html')">
-        <h3>Basid</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Skylar/index.html')">
-        <h3>Skylar</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Trisha/index.html')">
-        <h3>Trisha</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Delisha/index.html')">
-        <h3>Delisha</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Ayat/index.html')">
-        <h3>Ayat</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Muhannad/index.html')">
-        <h3>Muhannad</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Zayn/index.html')">
-        <h3>Zayn</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Adrian/index.html')">
-        <h3>Adrian</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Harmony/index.html')">
-        <h3>Harmony</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Hamnah/index.html')">
-        <h3>Hamnah</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Ayda/index.html')">
-        <h3>Ayda</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Hadi/index.html')">
-        <h3>Hadi</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Zoya/index.html')">
-        <h3>Zoya</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Munachi/index.html')">
-        <h3>Munachi</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Ellen/index.html')">
-        <h3>Ellen</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Saalvan/index.html')">
-        <h3>Saalvan</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Ameer/index.html')">
-        <h3>Ameer</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Mustafa/index.html')">
-        <h3>Mustafa</h3>
-        <p>Click to Play</p>
-    </div>
-
-    <div class="game-card" onclick="openGame('./Aimen/index.html')">
-        <h3>Aimen</h3>
-        <p>Click to Play</p>
-    </div>
-
-</div>
-
+    <!-- THE POP UP WINDOW -->
     <div id="gameModal">
-        <button id="closeBtn" onclick="closeGame()">EXIT GAME (Return to Arcade)</button>
+        <button id="closeBtn" onclick="closeGame()">EXIT GAME</button>
         <iframe id="gameFrame" src=""></iframe>
     </div>
 
     <script>
+        // 1. SCANNING LOGIC
+        document.addEventListener("DOMContentLoaded", async () => {
+            const cards = document.querySelectorAll('.game-card');
+
+            // Loop through every card and check the file
+            cards.forEach(async (card) => {
+                const url = card.getAttribute('data-url');
+                const statusLabel = card.querySelector('.status-text');
+
+                try {
+                    // Fetch the file content
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        const text = await response.text();
+
+                        // CHECK FOR THE PLACEHOLDER "SIGNATURE"
+                        if (text.includes("SYSTEM OFFLINE")) {
+                            // It's the placeholder!
+                            card.classList.add('status-offline');
+                            statusLabel.innerText = "MISSING CARTRIDGE";
+                            // Optional: Change click behavior to alert
+                            card.onclick = () => alert("This student has not uploaded their game yet.");
+                        } else {
+                            // It's a real game!
+                            card.classList.add('status-online');
+                            statusLabel.innerText = "INSERT COIN TO PLAY";
+                            card.onclick = () => openGame(url);
+                        }
+                    } else {
+                        // File doesn't exist (404)
+                        card.classList.add('status-offline');
+                        statusLabel.innerText = "FILE NOT FOUND";
+                    }
+                } catch (error) {
+                    console.error("Error checking " + url);
+                    card.classList.add('status-offline');
+                    statusLabel.innerText = "ERROR";
+                }
+            });
+        });
+
+        // 2. MODAL LOGIC
         const modal = document.getElementById('gameModal');
         const frame = document.getElementById('gameFrame');
 
         function openGame(path) {
-            modal.style.display = 'flex'; // Show the window
-            frame.src = path; // Load the student's game
-            
-            // CRITICAL: Wait 0.5 seconds then force focus to the game
-            // so arrow keys work immediately.
-            setTimeout(() => {
-                frame.contentWindow.focus();
-            }, 500);
+            modal.style.display = 'flex';
+            frame.src = path;
+            setTimeout(() => { frame.contentWindow.focus(); }, 500);
         }
 
         function closeGame() {
-            modal.style.display = 'none'; // Hide the window
-            frame.src = ''; // Unload the game (stops the music!)
+            modal.style.display = 'none';
+            frame.src = '';
         }
     </script>
 
