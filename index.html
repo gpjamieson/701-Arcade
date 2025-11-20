@@ -16,6 +16,12 @@
         h1 {
             text-shadow: 0 0 10px #00ff9d;
             margin-top: 30px;
+            font-size: 3rem;
+        }
+        
+        p.instructions {
+            color: #888;
+            margin-bottom: 30px;
         }
 
         .arcade-container {
@@ -36,6 +42,7 @@
             background: #222;
             color: #777;
             pointer-events: none; /* Disabled until scan finishes */
+            border-radius: 8px;
         }
 
         /* --- DYNAMIC STATUS STYLES --- */
@@ -46,11 +53,13 @@
             background-color: #121212;
             color: #00ff9d;
             pointer-events: auto; /* Enable clicking */
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
         }
         .game-card.status-online:hover {
             background-color: #00ff9d;
             color: #121212;
             transform: scale(1.05);
+            box-shadow: 0 0 20px #00ff9d;
         }
 
         /* MISSING CARTRIDGE */
@@ -100,6 +109,12 @@
             font-size: 1.2rem;
             cursor: pointer;
             border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        #closeBtn:hover {
+            background: #ff4466;
         }
 
         iframe {
@@ -112,15 +127,9 @@
 <body>
 
     <h1>🧪 SCIENCE ARCADE 🧪</h1>
-    <p>Scanning cartridges...</p>
+    <p class="instructions">System initializing... scanning for active cartridges...</p>
 
     <div class="arcade-container">
-
-        <!-- 
-           IMPORTANT: 
-           1. We use data-url instead of onclick directly.
-           2. The ID must match the Folder Name for the logic to be clear.
-        -->
 
         <!-- Ehaan -->
         <div class="game-card" data-url="./Ehaan/index.html">
@@ -133,9 +142,138 @@
             <h3>Viaan</h3>
             <div class="status-text">Scanning...</div>
         </div>
-        
-        <!-- PASTE THE REST OF YOUR STUDENTS HERE IN THIS FORMAT -->
-        <!-- Make sure to change the data-url and the Name H3 -->
+
+        <!-- Maya -->
+        <div class="game-card" data-url="./Maya/index.html">
+            <h3>Maya</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Bashir -->
+        <div class="game-card" data-url="./Bashir/index.html">
+            <h3>Bashir</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Mohamed -->
+        <div class="game-card" data-url="./Mohamed/index.html">
+            <h3>Mohamed</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Basid -->
+        <div class="game-card" data-url="./Basid/index.html">
+            <h3>Basid</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Skylar -->
+        <div class="game-card" data-url="./Skylar/index.html">
+            <h3>Skylar</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Trisha -->
+        <div class="game-card" data-url="./Trisha/index.html">
+            <h3>Trisha</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Delisha -->
+        <div class="game-card" data-url="./Delisha/index.html">
+            <h3>Delisha</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Ayat -->
+        <div class="game-card" data-url="./Ayat/index.html">
+            <h3>Ayat</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Muhannad -->
+        <div class="game-card" data-url="./Muhannad/index.html">
+            <h3>Muhannad</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Zayn -->
+        <div class="game-card" data-url="./Zayn/index.html">
+            <h3>Zayn</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Adrian -->
+        <div class="game-card" data-url="./Adrian/index.html">
+            <h3>Adrian</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Harmony -->
+        <div class="game-card" data-url="./Harmony/index.html">
+            <h3>Harmony</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Hamnah -->
+        <div class="game-card" data-url="./Hamnah/index.html">
+            <h3>Hamnah</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Ayda -->
+        <div class="game-card" data-url="./Ayda/index.html">
+            <h3>Ayda</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Hadi -->
+        <div class="game-card" data-url="./Hadi/index.html">
+            <h3>Hadi</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Zoya -->
+        <div class="game-card" data-url="./Zoya/index.html">
+            <h3>Zoya</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Munachi -->
+        <div class="game-card" data-url="./Munachi/index.html">
+            <h3>Munachi</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Ellen -->
+        <div class="game-card" data-url="./Ellen/index.html">
+            <h3>Ellen</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Saalvan -->
+        <div class="game-card" data-url="./Saalvan/index.html">
+            <h3>Saalvan</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Ameer -->
+        <div class="game-card" data-url="./Ameer/index.html">
+            <h3>Ameer</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Mustafa -->
+        <div class="game-card" data-url="./Mustafa/index.html">
+            <h3>Mustafa</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
+
+        <!-- Aimen -->
+        <div class="game-card" data-url="./Aimen/index.html">
+            <h3>Aimen</h3>
+            <div class="status-text">Scanning...</div>
+        </div>
 
     </div>
 
@@ -156,8 +294,9 @@
                 const statusLabel = card.querySelector('.status-text');
 
                 try {
-                    // Fetch the file content
-                    const response = await fetch(url);
+                    // Fetch the file content with a cache-busting timestamp
+                    // This prevents the browser from remembering the "old" file after you upload a new one
+                    const response = await fetch(url + '?t=' + new Date().getTime());
                     
                     if (response.ok) {
                         const text = await response.text();
@@ -167,7 +306,6 @@
                             // It's the placeholder!
                             card.classList.add('status-offline');
                             statusLabel.innerText = "MISSING CARTRIDGE";
-                            // Optional: Change click behavior to alert
                             card.onclick = () => alert("This student has not uploaded their game yet.");
                         } else {
                             // It's a real game!
