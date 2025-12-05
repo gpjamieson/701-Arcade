@@ -19,9 +19,21 @@
             font-size: 3rem;
         }
         
+        /* The Status Text Style */
         p.instructions {
             color: #888;
             margin-bottom: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-height: 1.5em; /* Prevents jumping when text changes */
+        }
+
+        /* Blinking animation for the loading phase */
+        .blink {
+            animation: blinker 1s linear infinite;
+        }
+        @keyframes blinker {
+            50% { opacity: 0; }
         }
 
         .arcade-container {
@@ -79,7 +91,6 @@
             opacity: 0.8;
         }
 
-        /* STATUS TEXT */
         .status-text {
             font-size: 0.8rem;
             margin-top: 10px;
@@ -127,7 +138,9 @@
 <body>
 
     <h1>🧪 SCIENCE ARCADE 🧪</h1>
-    <p class="instructions">System initializing... scanning for active cartridges...</p>
+    
+    <!-- This is the text that will change -->
+    <p class="instructions blink">SYSTEM INITIALIZING... SCANNING CARTRIDGES...</p>
 
     <div class="arcade-container">
 
@@ -251,8 +264,6 @@
             <div class="status-text">Scanning...</div>
         </div>
 
-        <!-- Saalvan Removed -->
-
         <!-- Ameer -->
         <div class="game-card" data-url="./Ameer/index.html">
             <h3>Ameer</h3>
@@ -280,52 +291,58 @@
     </div>
 
     <script>
-        // 1. SCANNING LOGIC
         document.addEventListener("DOMContentLoaded", async () => {
             const cards = document.querySelectorAll('.game-card');
+            const instructionsText = document.querySelector('.instructions');
 
-            // Loop through every card and check the file
-            cards.forEach(async (card) => {
+            // Map each card to a Promise so we can wait for ALL of them to finish
+            const scanPromises = Array.from(cards).map(async (card) => {
                 const url = card.getAttribute('data-url');
                 const statusLabel = card.querySelector('.status-text');
 
                 try {
-                    // Fetch the file content with a cache-busting timestamp
-                    // This prevents the browser from remembering the "old" file after you upload a new one
+                    // Fetch the file content with timestamp to prevent caching
                     const response = await fetch(url + '?t=' + new Date().getTime());
                     
                     if (response.ok) {
                         const text = await response.text();
 
-                        // CHECK FOR THE PLACEHOLDER "SIGNATURE"
                         if (text.includes("SYSTEM OFFLINE")) {
-                            // It's the placeholder!
+                            // It's the placeholder
                             card.classList.add('status-offline');
                             statusLabel.innerText = "MISSING CARTRIDGE";
                             card.onclick = () => alert("This student has not uploaded their game yet.");
                         } else {
-                            // It's a real game!
+                            // It's a real game
                             card.classList.add('status-online');
                             statusLabel.innerText = "INSERT COIN TO PLAY";
                             card.onclick = () => openGame(url);
                         }
                     } else {
-                        // File doesn't exist (404) - Treat as Missing
+                        // File not found (treat as missing)
                         card.classList.add('status-offline');
                         statusLabel.innerText = "MISSING CARTRIDGE";
                         card.onclick = () => alert("This student has not uploaded their game yet.");
                     }
                 } catch (error) {
-                    // Network error (likely folder missing) - Treat as Missing
-                    // console.error("Error checking " + url); // Suppressed console error
+                    // Network error (treat as missing)
                     card.classList.add('status-offline');
                     statusLabel.innerText = "MISSING CARTRIDGE";
                     card.onclick = () => alert("This student has not uploaded their game yet.");
                 }
             });
+
+            // Wait for all scanners to report back
+            await Promise.all(scanPromises);
+
+            // UPDATE THE TEXT AT THE TOP
+            instructionsText.innerText = "> SELECT A CARTRIDGE TO PLAY <";
+            instructionsText.classList.remove('blink');
+            instructionsText.style.color = "#00ff9d";
+            instructionsText.style.textShadow = "0 0 10px #00ff9d";
         });
 
-        // 2. MODAL LOGIC
+        // MODAL LOGIC
         const modal = document.getElementById('gameModal');
         const frame = document.getElementById('gameFrame');
 
