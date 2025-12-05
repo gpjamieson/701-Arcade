@@ -3,98 +3,628 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Mixture Master Lab</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Custom styles for the beaker and its contents */
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray lab background */
+        }
+        
+        /* ... (existing beaker styles) ... */
+        #beaker {
+            width: 150px;
+            height: 200px;
+            border: 8px solid #90a4ae; /* Gray glassware */
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            background-color: #ffffff;
             overflow: hidden;
+            box-shadow: 0 -4px 0 0 #90a4ae, inset 0 2px 4px rgba(0,0,0,0.05);
+            margin: 20px auto;
         }
-
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
+        #beaker::before {
+            content: '';
             position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
+            top: -8px;
+            left: -16px;
+            width: 25px;
+            height: 8px;
+            border-radius: 10px 10px 0 0;
+            background-color: #90a4ae;
         }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        .beaker-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            transition: all 0.5s ease;
         }
+
+        /* --- Standard Visuals --- */
+        .sand { height: 30%; background-color: #f0e68c; background-image: radial-gradient(#d2b48c 15%, transparent 16%); background-size: 5px 5px; }
+        .iron { height: 30%; background-color: #f0e68c; background-image: radial-gradient(#666 20%, transparent 21%), radial-gradient(#d2b48c 15%, transparent 16%); background-size: 7px 7px, 5px 5px; }
+        .pebbles { height: 35%; background-color: #f0e68c; background-image: radial-gradient(#888 30%, transparent 31%), radial-gradient(#d2b48c 15%, transparent 16%); background-size: 15px 15px, 5px 5px; }
+        .water { height: 70%; background-color: #a0d8f0; opacity: 0.8; }
+        .salt-water { height: 70%; background-color: #a0d8f0; opacity: 0.7; }
+        .empty { height: 0; }
+
+        /* --- NEW VISUALS for 25 Levels --- */
+        .sugar-water { height: 70%; background-color: #a0d8f0; opacity: 0.6; } /* Slightly clearer than salt */
+        .marbles { height: 30%; background-image: radial-gradient(#1e40af 40%, transparent 42%), radial-gradient(#c026d3 40%, transparent 42%), radial-gradient(#16a34a 40%, transparent 42%); background-size: 30px 30px; background-position: 0 0, 15px 15px, 5px 10px; }
+        .marbles-sand { height: 35%; background-color: #f0e68c; background-image: radial-gradient(#1e40af 20%, transparent 22%), radial-gradient(#c026d3 20%, transparent 22%), radial-gradient(#d2b48c 15%, transparent 16%); background-size: 30px 30px, 25px 25px, 5px 5px; }
+        .paper-clips { height: 25%; background-color: #d1d5db; background-image: radial-gradient(#6b7280 40%, #d1d5db 42%); background-size: 10px 20px; }
+        .sawdust { height: 20%; background-color: #cdaa7d; background-image: radial-gradient(#8a5a44 10%, transparent 12%); background-size: 8px 8px; }
+        .flour { height: 30%; background-color: #fef9e7; }
+        .flour-water { height: 70%; background-color: #e0dccc; opacity: 0.9; } /* Cloudy */
+        .sawdust-water { height: 20%; top: 0; bottom: auto; background-color: #cdaa7d; opacity: 0.9; border-bottom: 3px dashed #8a5a44; } /* Floats */
+        .styrofoam-water { height: 20%; top: 0; bottom: auto; background-color: #f0f0f0; opacity: 0.9; border-bottom: 3px dashed #bbb; background-image: radial-gradient(#fff 20%, transparent 22%); background-size: 15px 15px; } /* Floats */
+        .pebbles-in-water { height: 35%; background-color: #a0d8f0; background-image: radial-gradient(#888 30%, transparent 31%); background-size: 15px 15px; opacity: 0.8; }
+        .iron-in-water { height: 30%; background-color: #a0d8f0; background-image: radial-gradient(#666 20%, transparent 21%); background-size: 7px 7px; opacity: 0.8; }
+        .iron-pebbles { height: 35%; background-color: #f0e68c; background-image: radial-gradient(#666 20%, transparent 21%), radial-gradient(#888 30%, transparent 31%), radial-gradient(#d2b48c 15%, transparent 16%); background-size: 7px 7px, 15px 15px, 5px 5px; }
+        .bolts-and-screws { height: 35%; background-color: #d1d5db; background-image: radial-gradient(#6b7280 30%, transparent 31%), radial-gradient(#9ca3af 15%, transparent 16%); background-size: 20px 20px, 8px 8px; }
+
+        /* ... (existing strike, shake, and tool styles) ... */
+        .strike-mark { transition: all 0.2s ease-in-out; display: inline-block; }
+        .strike-mark.active { color: #ef4444; transform: scale(1.25); }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+        .shake { animation: shake 0.3s ease-in-out; }
+        .tool { transition: all 0.2s ease; }
+        .tool:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .tool:active { transform: scale(0.98); background-color: #dbeafe; }
+
+        /* --- REMOVED: Nyan Cat Event Styles --- */
+        
     </style>
 </head>
-<body>
+<!-- Removed overflow-x-hidden from body -->
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div class="scanline"></div>
-
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
+    <!-- Removed relative overflow-hidden from game-container -->
+    <div id="game-container" class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-6 md:p-10">
         
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+        <!-- Header -->
+        <header class="text-center border-b-2 border-gray-200 pb-4 mb-6">
+            <h1 class="text-4xl md:text-5xl font-bold text-blue-700">Mixture Master Lab</h1>
+            <p class="text-lg text-gray-600 mt-2">Choose the correct tool to separate the mixture!</p>
+        </header>
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+        <!-- Game Status Bar -->
+        <div class="flex justify-between items-center mb-4 bg-gray-50 p-4 rounded-lg">
+            <div>
+                <span class="font-bold text-gray-700">Current Level:</span>
+                <span id="level-name" class="font-bold text-blue-600 text-lg ml-2"></span>
+            </div>
+            
+            <!-- Strike Counter -->
+            <div>
+                <span class="font-bold text-gray-700">Strikes:</span>
+                <span id="strike-container" class="ml-2 space-x-1">
+                    <span data-strike="1" class="strike-mark text-gray-300 font-bold text-2xl">X</span>
+                    <span data-strike="2" class="strike-mark text-gray-300 font-bold text-2xl">X</span>
+                    <span data-strike="3" class="strike-mark text-gray-300 font-bold text-2xl">X</span>
+                </span>
+            </div>
+            
+            <button id="hint-button" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-2 px-4 rounded-lg shadow transition">
+                Need a Hint?
+            </button>
         </div>
+
+        <!-- Main Lab Area -->
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Left Panel: Lab Bench & Mixture -->
+            <div class="md:col-span-2 bg-gray-100 rounded-xl p-6 shadow-inner relative min-h-[400px]">
+                <h2 id="mixture-title" class="text-2xl font-semibold text-center text-gray-800 mb-4"></h2>
+                
+                <!-- The Beaker Visual -->
+                <div id="beaker-container" class="flex justify-center items-center">
+                    <div id="beaker">
+                        <div id="component1" class="beaker-content"></div>
+                        <div id="component2" class="beaker-content"></div>
+                    </div>
+                </div>
+
+                <!-- Message Box -->
+                <div id="message-box" class="absolute bottom-4 left-4 right-4 text-center p-4 rounded-lg text-lg font-semibold transition-all duration-300">
+                    <!-- Messages appear here -->
+                </div>
+            </div>
+
+            <!-- Right Panel: Tool Workbench -->
+            <aside class="md:col-span-1 bg-blue-50 p-6 rounded-xl shadow">
+                <h3 class="text-xl font-bold text-center text-blue-800 mb-6">Workbench</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    
+                    <button data-tool="magnetism" class="tool bg-white p-4 rounded-lg shadow-md flex flex-col items-center justify-center space-y-2">
+                        <svg class="w-16 h-16 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        <span class="font-semibold text-gray-700">Magnet</span>
+                    </button>
+                    
+                    <button data-tool="sieving" class="tool bg-white p-4 rounded-lg shadow-md flex flex-col items-center justify-center space-y-2">
+                        <svg class="w-16 h-16 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        <span class="font-semibold text-gray-700">Sieve</span>
+                    </button>
+                    
+                    <button data-tool="filtration" class="tool bg-white p-4 rounded-lg shadow-md flex flex-col items-center justify-center space-y-2">
+                        <svg class="w-16 h-16 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        <span class="font-semibold text-gray-700">Filtration</span>
+                    </button>
+                    
+                    <button data-tool="evaporation" class="tool bg-white p-4 rounded-lg shadow-md flex flex-col items-center justify-center space-y-2">
+                        <svg class="w-16 h-16 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343m11.314 11.314a8 8 0 01-11.314 0m11.314 0L20 20M6.343 7.343L4 4m6.5 2a.5.5 0 01.5.5v1.5a.5.5 0 01-1 0V6.5a.5.5 0 01.5-.5zM12 12a.5.5 0 01.5.5v1.5a.5.5 0 01-1 0V12.5a.5.5 0 01.5-.5zM17.5 6a.5.5 0 01.5.5v1.5a.5.5 0 01-1 0V6.5a.5.5 0 01.5-.5z"></path></svg>
+                        <span class="font-semibold text-gray-700">Evaporation</span>
+                    </button>
+                    
+                    <button data-tool="handpicking" class="tool bg-white p-4 rounded-lg shadow-md flex flex-col items-center justify-center space-y-2">
+                        <svg class="w-16 h-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V17.5C7 18.3284 7.67157 19 8.5 19H15.5C16.3284 19 17 18.3284 17 17.5V11.5M10 11.5V5.5C10 4.67157 10.6716 4 11.5 4H12.5C13.3284 4 14 4.67157 14 5.5V11.5M7 11.5C7 10.6716 6.32843 10 5.5 10H5C4.17157 10 3.5 10.6716 3.5 11.5C3.5 12.3284 4.17157 13 5 13H5.5C6.32843 13 7 12.3284 7 11.5ZM17 11.5C17 10.6716 17.6716 10 18.5 10H19C19.8284 10 20.5 10.6716 20.5 11.5C20.5 12.3284 19.8284 13 19 13H18.5C17.6716 13 17 12.3284 17 11.5Z"></path></svg>
+                        <span class="font-semibold text-gray-700">Hand Picking</span>
+                    </button>
+
+                </div>
+            </aside>
+
+        </main>
+        
+        <!-- Win Screen -->
+        <div id="win-screen" class="hidden text-center mt-10 p-10 bg-green-100 border-4 border-green-500 rounded-2xl shadow-lg">
+            <h2 class="text-5xl font-bold text-green-800 mb-4">You're a Mixture Master!</h2>
+            <p class="text-xl text-gray-700 mb-6">You've successfully separated all 25 mixtures! Incredible job!</p>
+            <button id="play-again-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transition transform hover:scale-105">
+                Play Again?
+            </button>
+        </div>
+        
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="hidden text-center mt-10 p-10 bg-red-100 border-4 border-red-500 rounded-2xl shadow-lg">
+            <h2 class="text-5xl font-bold text-red-800 mb-4">Game Over!</h2>
+            <p class="text-xl text-gray-700 mb-6">You got 3 strikes. Don't worry, scientists always try again!</p>
+            <button id="restart-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transition transform hover:scale-105">
+                Restart Game
+            </button>
+        </div>
+
+        <!-- REMOVED: Nyan Cat Event Element -->
+
     </div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- NEW: Mixture Facts ---
+            const mixtureFacts = [
+                "A solution is a special type of mixture where one substance is dissolved completely into another, like salt in water.",
+                "Not all mixtures are liquid! The air you breathe is a mixture of gases like nitrogen, oxygen, and carbon dioxide.",
+                "An alloy is a solid mixture of two or more metals. Brass (copper and zinc) and steel (iron and carbon) are alloys!",
+                "Filtration works because the filter paper has tiny holes (pores) that are big enough for water molecules to pass through, but too small for solids like sand.",
+                "Evaporation separates a dissolved solid from a liquid because the liquid (like water) turns into a gas, but the solid (like salt) does not.",
+                "A mixture where you can easily see the different parts, like pebbles and sand, is called a 'heterogeneous' mixture.",
+                "A mixture that looks the same all the way through, like salt water, is called a 'homogeneous' mixture.",
+                "Using a magnet works because of a property called 'ferromagnetism'. Iron is ferromagnetic, but sand, water, and pebbles are not."
+            ];
+
+            // --- NEW 25 LEVEL GAME DATA ---
+            const allLevels = [
+                // --- Part 1: The Basics (1-5) ---
+                {
+                    id: 0, name: "Magnetic Attraction", title: "Mixture: Iron Filings & Sand",
+                    components: ['iron', 'sand'], visual: { comp1: 'iron', comp2: 'empty' },
+                    hint: "One of these components is... *attractive*! 🧲",
+                    steps: [ { tool: 'magnetism', postMessage: "Success! The magnet pulled out all the iron filings!" } ]
+                },
+                {
+                    id: 1, name: "The Big Sort", title: "Mixture: Pebbles & Sand",
+                    components: ['pebbles', 'sand'], visual: { comp1: 'pebbles', comp2: 'empty' },
+                    hint: "How do you separate big things from small things? Think about a pasta strainer.",
+                    steps: [ { tool: 'sieving', postMessage: "Great! The sieve caught the big pebbles and let the sand fall through." } ]
+                },
+                {
+                    id: 2, name: "Muddy Water", title: "Mixture: Sand & Water",
+                    components: ['sand', 'water'], visual: { comp1: 'sand', comp2: 'water' },
+                    hint: "The sand didn't dissolve. How can you *trap* the solid part and let the liquid pass?",
+                    steps: [ { tool: 'filtration', postMessage: "Perfect! The filter paper trapped the sand, and the clear water passed through." } ]
+                },
+                {
+                    id: 3, name: "Salty Solution", title: "Mixture: Salt & Water",
+                    components: ['salt', 'water'], visual: { comp1: 'salt-water', comp2: 'empty' },
+                    hint: "The salt *dissolved*! How can you get the water to leave the salt behind?",
+                    steps: [ { tool: 'evaporation', postMessage: "You got it! You boiled off the water, leaving the salt crystals behind." } ]
+                },
+                {
+                    id: 4, name: "Marble Madness", title: "Mixture: Marbles & Sand",
+                    components: ['marbles', 'sand'], visual: { comp1: 'marbles-sand', comp2: 'empty' },
+                    hint: "The marbles are large and easy to see. What's the most direct way to get them?",
+                    steps: [ { tool: 'handpicking', postMessage: "Nice and easy! You picked the marbles out by hand." } ]
+                },
+
+                // --- Part 2: Reinforcement (6-10) ---
+                {
+                    id: 5, name: "Office Mess", title: "Mixture: Paper Clips & Sawdust",
+                    components: ['paper clips', 'sawdust'], visual: { comp1: 'paper-clips', comp2: 'sawdust' },
+                    hint: "Those paper clips are made of metal... a special *kind* of metal.",
+                    steps: [ { tool: 'magnetism', postMessage: "Click! The magnet snapped up all the paper clips." } ]
+                },
+                {
+                    id: 6, name: "Workshop Floor", title: "Mixture: Large Bolts & Small Screws",
+                    components: ['bolts', 'screws'], visual: { comp1: 'bolts-and-screws', comp2: 'empty' },
+                    hint: "A classic size problem. How do you sort them?",
+                    steps: [ { tool: 'sieving', postMessage: "Perfect! The sieve let the small screws fall through and kept the large bolts." } ]
+                },
+                {
+                    id: 7, name: "Cloudy Water", title: "Mixture: Flour & Water",
+                    components: ['flour', 'water'], visual: { comp1: 'flour-water', comp2: 'empty' },
+                    hint: "The flour is *suspended* in the water, making it cloudy. It won't settle quickly.",
+                    steps: [ { tool: 'filtration', postMessage: "Good job! The filter paper is fine enough to trap the tiny flour particles." } ]
+                },
+                {
+                    id: 8, name: "Sweet Solution", title: "Mixture: Sugar & Water",
+                    components: ['sugar', 'water'], visual: { comp1: 'sugar-water', comp2: 'empty' },
+                    hint: "Like salt, the sugar dissolved completely. How do you recover a dissolved solid?",
+                    steps: [ { tool: 'evaporation', postMessage: "Sweet! The water evaporated, leaving the sugar crystals." } ]
+                },
+                {
+                    id: 9, name: "Floating Problem", title: "Mixture: Styrofoam Bits & Water",
+                    components: ['styrofoam', 'water'], visual: { comp1: 'water', comp2: 'styrofoam-water' },
+                    hint: "The styrofoam is floating right on top! What's an easy way to 'pick' them off the surface?",
+                    steps: [ { tool: 'handpicking', postMessage: "You got it! You skimmed the floating styrofoam right off the top." } ]
+                },
+
+                // --- Part 3: Two-Step Puzzles (11-17) ---
+                {
+                    id: 10, name: "Scrap Pile", title: "Mixture: Iron Filings & Pebbles",
+                    components: ['iron', 'pebbles'], visual: { comp1: 'iron-pebbles', comp2: 'empty' },
+                    hint: "Two types of solid. Get the *special* one out first.",
+                    steps: [
+                        { tool: 'magnetism', postMessage: "Step 1: The magnet got the iron! Now you just have pebbles.", nextVisual: { comp1: 'pebbles', comp2: 'empty' } },
+                        { tool: 'handpicking', postMessage: "Step 2: You picked up the remaining pebbles. Well done!" }
+                    ]
+                },
+                {
+                    id: 11, name: "Beach Puddle", title: "Mixture: Sand & Salt Water",
+                    components: ['sand', 'salt', 'water'], visual: { comp1: 'sand', comp2: 'salt-water' },
+                    hint: "Two steps! First, get rid of the solid that *didn't* dissolve.",
+                    steps: [
+                        { tool: 'filtration', postMessage: "Step 1: You filtered out the sand! Now just salt water is left.", nextVisual: { comp1: 'salt-water', comp2: 'empty' }, nextHint: "Now, how do you get the *dissolved* salt?" },
+                        { tool: 'evaporation', postMessage: "You did it! You separated the sand and the salt." }
+                    ]
+                },
+                {
+                    id: 12, name: "Wet Iron", title: "Mixture: Iron Filings & Water",
+                    components: ['iron', 'water'], visual: { comp1: 'iron-in-water', comp2: 'water' },
+                    hint: "The iron is magnetic, even in water! How can you pull it out?",
+                    steps: [ { tool: 'magnetism', postMessage: "Awesome! The magnet pulled the iron filings right through the water." } ]
+                },
+                {
+                    id: 13, name: "River Rocks", title: "Mixture: Pebbles & Water",
+                    components: ['pebbles', 'water'], visual: { comp1: 'pebbles-in-water', comp2: 'water' },
+                    hint: "The pebbles are way too big for filter paper. What's a simpler way?",
+                    steps: [ { tool: 'sieving', postMessage: "You got it! A sieve is perfect for separating large solids from a liquid." } ]
+                },
+                {
+                    id: 14, name: "Woodshop Mess", title: "Mixture: Sawdust & Sand",
+                    components: ['sawdust', 'sand'], visual: { comp1: 'sawdust', comp2: 'sand' },
+                    hint: "This is tricky. What if you added water? One floats, one sinks...",
+                    steps: [
+                        // This is a "conceptual" step. Adding water is the 'solution'.
+                        { tool: 'handpicking', postMessage: "Step 1: Smart! You added water, and the sawdust floated. You skimmed it off!", nextVisual: { comp1: 'sand', comp2: 'water' }, nextHint: "Now you just have sand and water." },
+                        { tool: 'filtration', postMessage: "Step 2: You filtered the sand out of the water. Great thinking!" }
+                    ]
+                },
+                {
+                    id: 15, name: "Junkyard", title: "Mixture: Paper Clips & Pebbles",
+                    components: ['paper clips', 'pebbles'], visual: { comp1: 'paper-clips', comp2: 'pebbles' },
+                    hint: "A 2-step problem. Get the magnetic metal out first.",
+                    steps: [
+                        { tool: 'magnetism', postMessage: "Step 1: The magnet got the paper clips!", nextVisual: { comp1: 'pebbles', comp2: 'empty' }, nextHint: "Now just get the pebbles." },
+                        { tool: 'handpicking', postMessage: "Step 2: You picked up the pebbles. Easy!" }
+                    ]
+                },
+                {
+                    id: 16, name: "Cloudy River", title: "Mixture: Flour, Pebbles, & Water",
+                    components: ['flour', 'pebbles', 'water'], visual: { comp1: 'pebbles-in-water', comp2: 'flour-water' },
+                    hint: "Two solids in water. Get the *big* one out first.",
+                    steps: [
+                        { tool: 'sieving', postMessage: "Step 1: The sieve caught the pebbles! But the water is still cloudy with flour.", nextVisual: { comp1: 'flour-water', comp2: 'empty' }, nextHint: "Now, how do you get the tiny flour particles out?" },
+                        { tool: 'filtration', postMessage: "Step 2: The filter paper trapped the flour. Excellent!" }
+                    ]
+                },
+
+                // --- Part 4: Three-Step Puzzles (17-22) ---
+                {
+                    id: 17, name: "Iron Beach", title: "Mixture: Iron, Sand, & Salt Water",
+                    components: ['iron', 'sand', 'salt', 'water'], visual: { comp1: 'iron-in-water', comp2: 'salt-water' }, // Visual approximation
+                    hint: "A 3-step puzzle! First, the magnetic material.",
+                    steps: [
+                        { tool: 'magnetism', postMessage: "Step 1: You pulled the iron out! Now you have sandy salt water.", nextVisual: { comp1: 'sand', comp2: 'salt-water' }, nextHint: "Step 2: Get the *undissolved* sand out." },
+                        { tool: 'filtration', postMessage: "Step 2: You filtered the sand! Now just salt water remains.", nextVisual: { comp1: 'salt-water', comp2: 'empty' }, nextHint: "Step 3: Get the *dissolved* salt." },
+                        { tool: 'evaporation', postMessage: "Step 3: Complete! You got the iron, sand, and salt." }
+                    ]
+                },
+                {
+                    id: 18, name: "Pond Scum", title: "Mixture: Pebbles, Sawdust, & Sand",
+                    components: ['pebbles', 'sawdust', 'sand'], visual: { comp1: 'pebbles', comp2: 'sawdust' },
+                    hint: "Add water! One floats, one is big, one is small.",
+                    steps: [
+                        { tool: 'handpicking', postMessage: "Step 1: Smart! You added water and skimmed the floating sawdust.", nextVisual: { comp1: 'pebbles', comp2: 'sand' }, nextHint: "Step 2: Now, separate the pebbles and sand." },
+                        { tool: 'sieving', postMessage: "Step 2: The sieve caught the pebbles!", nextVisual: { comp1: 'sand', comp2: 'empty' }, nextHint: "And the sand is left! But we need to 'collect' it." },
+                        // The last step is implied, but let's add a conceptual "collect"
+                        { tool: 'filtration', postMessage: "Step 3: (Conceptually) you filtered the sand from the water. All done!" }
+                    ]
+                },
+                {
+                    id: 19, name: "Wet Scrap", title: "Mixture: Iron, Flour, Pebbles, & Water",
+                    components: ['iron', 'flour', 'pebbles', 'water'], visual: { comp1: 'iron-in-water', comp2: 'flour-water' },
+                    hint: "A 3-step challenge. Get the magnetic stuff first!",
+                    steps: [
+                        { tool: 'magnetism', postMessage: "Step 1: Got the iron! Now you have pebbles and flour in water.", nextVisual: { comp1: 'pebbles-in-water', comp2: 'flour-water' }, nextHint: "Step 2: Get the *big* solids out." },
+                        { tool: 'sieving', postMessage: "Step 2: The sieve caught the pebbles! Water is still cloudy with flour.", nextVisual: { comp1: 'flour-water', comp2: 'empty' }, nextHint: "Step 3: Get the *tiny* flour particles out." },
+                        { tool: 'filtration', postMessage: "Step 3: You filtered the flour. All components separated!" }
+                    ]
+                },
+                {
+                    id: 20, name: "Sweet Mess", title: "Mixture: Paper Clips, Marbles, & Sugar Water",
+                    components: ['paper clips', 'marbles', 'sugar', 'water'], visual: { comp1: 'paper-clips', comp2: 'sugar-water' }, // Visual approx
+                    hint: "3 steps. First, the magnetic clips.",
+                    steps: [
+                        { tool: 'magnetism', postMessage: "Step 1: Got the paper clips!", nextVisual: { comp1: 'marbles', comp2: 'sugar-water' }, nextHint: "Step 2: Get the big marbles out." },
+                        { tool: 'handpicking', postMessage: "Step 2: You picked out the marbles!", nextVisual: { comp1: 'sugar-water', comp2: 'empty' }, nextHint: "Step 3: Get the *dissolved* sugar." },
+                        { tool: 'evaporation', postMessage: "Step 3: You recovered the sugar. Excellent work!" }
+                    ]
+                },
+                {
+                    id: 21, name: "Polluted Beach", title: "Mixture: Styrofoam, Sand, & Salt Water",
+                    components: ['styrofoam', 'sand', 'salt', 'water'], visual: { comp1: 'sand', comp2: 'styrofoam-water' },
+                    hint: "3 steps. First, get the floating trash.",
+                    steps: [
+                        { tool: 'handpicking', postMessage: "Step 1: You skimmed the floating styrofoam.", nextVisual: { comp1: 'sand', comp2: 'salt-water' }, nextHint: "Step 2: Get the *undissolved* sand." },
+                        { tool: 'filtration', postMessage: "Step 2: You filtered the sand!", nextVisual: { comp1: 'salt-water', comp2: 'empty' }, nextHint: "Step 3: Get the *dissolved* salt." },
+                        { tool: 'evaporation', postMessage: "Step 3: All clean! You got all three components." }
+                    ]
+                },
+
+                // --- Part 5: Master Levels (22-24) ---
+                {
+                    id: 22, name: "The Super Challenge", title: "Mixture: Iron, Pebbles, Sand, & Salt Water",
+                    components: ['iron', 'pebbles', 'sand', 'salt', 'water'], visual: { comp1: 'iron-pebbles', comp2: 'salt-water' },
+                    hint: "The 4-step challenge! First, the magnetic metal.",
+                    steps: [
+                        { tool: 'magnetism', postMessage: "Step 1: Iron is out!", nextVisual: { comp1: 'pebbles-in-water', comp2: 'salt-water' }, nextHint: "Step 2: Get the big pebbles out." },
+                        { tool: 'sieving', postMessage: "Step 2: Pebbles are gone! Now, sandy salt water.", nextVisual: { comp1: 'sand', comp2: 'salt-water' }, nextHint: "Step 3: Get the *undissolved* sand." },
+                        { tool: 'filtration', postMessage: "Step 3: Sand is filtered! Only salt water remains.", nextVisual: { comp1: 'salt-water', comp2: 'empty' }, nextHint: "Step 4: Get the *dissolved* salt." },
+                        { tool: 'evaporation', postMessage: "You did it! A 4-step separation!" }
+                    ]
+                },
+                {
+                    id: 23, name: "Treasure Chest", title: "Mixture: Coins, Marbles, Sand, & Sugar Water",
+                    components: ['coins', 'marbles', 'sand', 'sugar', 'water'], visual: { comp1: 'marbles-sand', comp2: 'sugar-water' },
+                    hint: "Note: Coins aren't magnetic! 4 steps. Get the biggest items first.",
+                    steps: [
+                        { tool: 'handpicking', postMessage: "Step 1: You picked out the coins!", nextVisual: { comp1: 'marbles-sand', comp2: 'sugar-water' }, nextHint: "Step 2: Get the other big items, the marbles." },
+                        { tool: 'handpicking', postMessage: "Step 2: You picked out the marbles!", nextVisual: { comp1: 'sand', comp2: 'sugar-water' }, nextHint: "Step 3: Get the *undissolved* sand." },
+                        { tool: 'filtration', postMessage: "Step 3: Sand is filtered! Only sugar water remains.", nextVisual: { comp1: 'sugar-water', comp2: 'empty' }, nextHint: "Step 4: Get the *dissolved* sugar." },
+                        { tool: 'evaporation', postMessage: "You found the treasure! All separated!" }
+                    ]
+                },
+                {
+                    id: 24, name: "THE FINAL MESS", title: "Mixture: Iron, Pebbles, Sawdust, Flour, & Water",
+                    components: ['iron', 'pebbles', 'sawdust', 'flour', 'water'], visual: { comp1: 'iron-pebbles', comp2: 'sawdust-water' },
+                    hint: "The 4-step boss! Get the magnetic parts first.",
+                    steps: [
+                        { tool: 'magnetism', postMessage: "Step 1: Got the iron!", nextVisual: { comp1: 'pebbles', comp2: 'sawdust-water' }, nextHint: "Step 2: Get the floating sawdust." },
+                        { tool: 'handpicking', postMessage: "Step 2: You skimmed the sawdust!", nextVisual: { comp1: 'pebbles', comp2: 'flour-water' }, nextHint: "Step 3: Get the big pebbles." },
+                        { tool: 'sieving', postMessage: "Step 3: The sieve caught the pebbles! Only cloudy flour water is left.", nextVisual: { comp1: 'flour-water', comp2: 'empty' }, nextHint: "Step 4: Get the *tiny* suspended flour." },
+                        { tool: 'filtration', postMessage: "YOU ARE A TRUE MIXTURE MASTER! You beat all 25 levels!" }
+                    ]
+                }
+            ];
+
+            // --- GAME STATE ---
+            let gameLevels = []; // NEW: Array to hold shuffled levels
+            let currentLevelIndex = 0;
+            let currentStepIndex = 0;
+            let gameIsOver = false;
+            let strikes = 0;
+            let correctStreak = 0; 
+
+            // --- DOM ELEMENTS ---
+            const levelNameEl = document.getElementById('level-name');
+            const mixtureTitleEl = document.getElementById('mixture-title');
+            const comp1El = document.getElementById('component1');
+            const comp2El = document.getElementById('component2');
+            const messageBoxEl = document.getElementById('message-box');
+            const toolButtons = document.querySelectorAll('.tool');
+            const hintButton = document.getElementById('hint-button');
+            const gameContainer = document.getElementById('game-container');
+            const mainGameArea = document.querySelector('main');
+            const winScreen = document.getElementById('win-screen');
+            const playAgainButton = document.getElementById('play-again-button');
+            const gameOverScreen = document.getElementById('game-over-screen');
+            const restartButton = document.getElementById('restart-button');
+            const strikeMarks = document.querySelectorAll('.strike-mark');
+
+            // --- HELPERS ---
+            
+            // NEW: Fisher-Yates Shuffle Algorithm
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            // --- GAME FUNCTIONS ---
+
+            function startGame() {
+                // Initialize levels with a fresh shuffle
+                gameLevels = [...allLevels]; // Create a copy
+                shuffleArray(gameLevels);    // Shuffle the copy
+
+                currentLevelIndex = 0;
+                currentStepIndex = 0;
+                gameIsOver = false;
+                strikes = 0;
+                correctStreak = 0;
+                updateStrikeVisuals();
+                mainGameArea.classList.remove('hidden');
+                winScreen.classList.add('hidden');
+                gameOverScreen.classList.add('hidden');
+                loadLevel();
+            }
+
+            function loadLevel() {
+                if (gameIsOver) return;
+
+                const level = gameLevels[currentLevelIndex];
+                const step = level.steps[currentStepIndex];
+                
+                const visual = (step && step.nextVisual) || level.visual;
+                
+                // Update level name to show 1...25 based on current index, not ID
+                levelNameEl.textContent = `Level ${currentLevelIndex + 1} of ${gameLevels.length}: ${level.name} (Step ${currentStepIndex + 1} of ${level.steps.length})`;
+                mixtureTitleEl.textContent = level.title;
+
+                comp1El.className = `beaker-content ${visual.comp1}`;
+                comp2El.className = `beaker-content ${visual.comp2}`;
+
+                // Show initial instruction
+                const components = (step && step.nextComponents) || level.components; 
+                const instruction = `Your task is to separate: ${components.join(', ')}.`;
+                showMessage(instruction, 'instruction');
+            }
+
+            function selectTool(toolName) {
+                if (gameIsOver) return;
+
+                const level = gameLevels[currentLevelIndex];
+                const step = level.steps[currentStepIndex];
+
+                if (toolName === step.tool) {
+                    // --- CORRECT TOOL ---
+                    showMessage(step.postMessage, 'success');
+                    
+                    correctStreak++;
+                    // Check for streak rewards
+                    if (correctStreak === 4) {
+                        showRandomFact();
+                    }
+
+                    currentStepIndex++; // Advance to next step
+
+                    // Check if level is complete
+                    if (currentStepIndex >= level.steps.length) {
+                        currentLevelIndex++; // Advance to next level
+                        currentStepIndex = 0;
+
+                        // Check if game is won
+                        if (currentLevelIndex >= gameLevels.length) {
+                            showWinScreen();
+                            return;
+                        }
+                    }
+                    
+                    setTimeout(loadLevel, 3000); // Load next step/level
+
+                } else {
+                    // --- WRONG TOOL ---
+                    strikes++;
+                    correctStreak = 0; // Reset streak
+                    updateStrikeVisuals();
+                    
+                    if (strikes >= 3) {
+                        gameOver();
+                    } else {
+                        const chancesLeft = 3 - strikes;
+                        showMessage(`Hmm, that's not right. You have ${chancesLeft} chance(s) left.`, 'error');
+                        gameContainer.classList.add('shake');
+                        setTimeout(() => gameContainer.classList.remove('shake'), 300);
+                    }
+                }
+            }
+
+            function showRandomFact() {
+                const fact = mixtureFacts[Math.floor(Math.random() * mixtureFacts.length)];
+                // Show this fact *after* the success message fades
+                setTimeout(() => {
+                    showMessage("🌟 4-IN-A-ROW FACT: " + fact, 'hint');
+                }, 3500); // Show it just as the level is loading
+            }
+
+            function updateStrikeVisuals() {
+                strikeMarks.forEach((mark, index) => {
+                    if (index < strikes) {
+                        mark.classList.add('active', 'text-red-500');
+                        mark.classList.remove('text-gray-300');
+                    } else {
+                        mark.classList.remove('active', 'text-red-500');
+                        mark.classList.add('text-gray-300');
+                    }
+                });
+            }
+            
+            function gameOver() {
+                gameIsOver = true;
+                mainGameArea.classList.add('hidden');
+                gameOverScreen.classList.remove('hidden');
+                showMessage("Game Over! Better luck next time!", 'error');
+            }
+
+            function showHint() {
+                if (gameIsOver) return;
+                const level = gameLevels[currentLevelIndex];
+                const step = level.steps[currentStepIndex];
+                const hint = (step && step.nextHint) || level.hint;
+                showMessage(hint, 'hint');
+            }
+
+            function showWinScreen() {
+                gameIsOver = true;
+                mainGameArea.classList.add('hidden');
+                winScreen.classList.remove('hidden');
+                levelNameEl.textContent = "Complete!";
+                mixtureTitleEl.textContent = "Lab Cleaned!";
+                comp1El.className = 'beaker-content empty';
+                comp2El.className = 'beaker-content empty';
+            }
+
+            function showMessage(text, type) {
+                messageBoxEl.textContent = text;
+                messageBoxEl.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800', 'bg-yellow-100', 'text-yellow-800');
+                
+                switch (type) {
+                    case 'success':
+                        messageBoxEl.classList.add('bg-green-100', 'text-green-800');
+                        break;
+                    case 'error':
+                        messageBoxEl.classList.add('bg-red-100', 'text-red-800');
+                        break;
+                    case 'instruction':
+                        messageBoxEl.classList.add('bg-blue-100', 'text-blue-800');
+                        break;
+                    case 'hint':
+                        messageBoxEl.classList.add('bg-yellow-100', 'text-yellow-800');
+                        break;
+                }
+            }
+
+            // --- EVENT LISTENERS ---
+            toolButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    selectTool(button.dataset.tool);
+                });
+            });
+
+            hintButton.addEventListener('click', showHint);
+            playAgainButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame);
+
+            // --- START GAME ---
+            startGame();
+        });
+    </script>
 </body>
 </html>

@@ -1,100 +1,250 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
-    <style>
-        body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
-        }
-
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
-        }
-    </style>
+  <title>Prince of Physics</title>
+  <style>
+    body { margin:0; background:#111; font-family:sans-serif; }
+    canvas { display:block; margin:auto; background:#87CEEB; }
+    #questionBox {
+      position:absolute; top:580px; left:50%; transform:translateX(-50%);
+      text-align:center;
+      color:white;
+      font-size:20px;
+    }
+    #choices {
+      position:absolute; top:620px; left:50%; transform:translateX(-50%);
+      display:flex; gap:20px;
+    }
+    .choiceBtn {
+      padding:10px 20px; font-size:18px; cursor:pointer;
+      background:#444; color:white; border:none; border-radius:5px;
+    }
+  </style>
 </head>
 <body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="questionBox"></div>
+<div id="choices"></div>
 
-    <div class="scanline"></div>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const choicesDiv = document.getElementById("choices");
+const questionBox = document.getElementById("questionBox");
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+// === GAME STATE ===
+let level = 0;
+let player = {x:50, y:500, speed:5, walkFrame:0, walkCounter:0};
+let princess = {x:650, y:500, waveFrame:0, waveCounter:0};
+let asking = false;
+let currentQuestion = null;
+let hearts = []; // pixel hearts for love ending
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
-        </div>
-    </div>
+// === LEVEL DATA ===
+const levels = [
+  {
+    bg:"#228B22", 
+    monster:{x:600, y:500, dir:1, moveCounter:0}, 
+    question:{q:"F=ma. What is 'a'?", options:["Acceleration","Area","Amplitude"], answer:"Acceleration"}
+  },
+  {
+    bg:"#A9A9A9",
+    monster:{x:600, y:500, dir:1, moveCounter:0}, 
+    question:{q:"Gravity pulls objects ____.", options:["Up","Down","Sideways"], answer:"Down"}
+  },
+  {
+    bg:"#8B0000",
+    monster:{x:600, y:500, dir:1, moveCounter:0}, 
+    question:{q:"Newton's Third Law?", options:["Action = Reaction","Energy Lost","Mass = Volume"], answer:"Action = Reaction"}
+  }
+];
 
+// === INPUT ===
+let keys = {};
+document.addEventListener("keydown", e=>{ keys[e.key]=true; });
+document.addEventListener("keyup", e=>{ keys[e.key]=false; });
+
+// === SHOW CLICKABLE QUESTION OPTIONS ===
+function showQuestion(qObj){
+  choicesDiv.innerHTML="";
+  questionBox.innerText = "Question: " + qObj.q;
+  let options = [...qObj.options];
+  options.sort(()=>Math.random()-0.5);
+  options.forEach(opt=>{
+    const btn = document.createElement("button");
+    btn.className="choiceBtn";
+    btn.innerText=opt;
+    btn.onclick = ()=>{
+      if(opt===qObj.answer){
+        level++;
+        asking=false;
+        choicesDiv.innerHTML="";
+        questionBox.innerText="";
+      } else {
+        alert("Wrong! Try again.");
+      }
+    };
+    choicesDiv.appendChild(btn);
+  });
+}
+
+// === UPDATE ===
+function update(){
+  // Player movement
+  if(!asking && level<3){
+    if(keys["ArrowLeft"] && player.x>0){ player.x-=player.speed; player.walkCounter++; }
+    else if(keys["ArrowRight"] && player.x+30<canvas.width){ player.x+=player.speed; player.walkCounter++; }
+    else player.walkCounter=0;
+    player.walkFrame = Math.floor(player.walkCounter/10)%2;
+  }
+
+  // Monster movement
+  if(level<3 && !asking){
+    let m = levels[level].monster;
+    m.x += m.dir*2;
+    if(m.x>700 || m.x<100) m.dir*=-1;
+    m.moveCounter++;
+  }
+
+  // Princess waving
+  if(level===3 && !asking){
+    princess.waveCounter++;
+    princess.waveFrame = Math.floor(princess.waveCounter/20)%2;
+  }
+
+  // Collision with monster → show question
+  if(level<3 && !asking){
+    let m = levels[level].monster;
+    if(player.x+30 > m.x && player.x < m.x+50 && player.y < m.y+50 && player.y+60> m.y){
+      asking=true;
+      currentQuestion = levels[level].question;
+      showQuestion(currentQuestion);
+    }
+  }
+
+  // Collision with princess → love ending
+  if(level===3 && player.x+30>princess.x){
+    level=4;
+  }
+
+  // Spawn hearts in ending
+  if(level===4){
+    if(Math.random()<0.07){
+      hearts.push({x:player.x+15 + Math.random()*20-10, y:player.y-10, size:5+Math.random()*5, dy:-1-Math.random()*1.5});
+    }
+    hearts.forEach(h=>{h.y += h.dy;});
+    hearts = hearts.filter(h=>h.y>0);
+  }
+}
+
+// === DRAW FUNCTIONS ===
+function drawPlayer(){
+  ctx.fillStyle="blue";
+  ctx.fillRect(player.x, player.y, 30,50);
+  ctx.fillStyle="black";
+  ctx.fillRect(player.x+5, player.y-15,20,15);
+  // legs animation
+  ctx.strokeStyle="black"; ctx.lineWidth=3;
+  ctx.beginPath();
+  if(player.walkFrame===0){
+    ctx.moveTo(player.x+5,player.y+50); ctx.lineTo(player.x+5,player.y+60);
+    ctx.moveTo(player.x+25,player.y+50); ctx.lineTo(player.x+25,player.y+60);
+  } else {
+    ctx.moveTo(player.x+5,player.y+50); ctx.lineTo(player.x+10,player.y+60);
+    ctx.moveTo(player.x+25,player.y+50); ctx.lineTo(player.x+20,player.y+60);
+  }
+  ctx.stroke();
+}
+
+function drawMonster(){
+  let m = levels[level].monster;
+  ctx.fillStyle="red";
+  ctx.fillRect(m.x, m.y,50,50);
+  ctx.fillStyle="darkred";
+  ctx.fillRect(m.x+10, m.y-10,30,10);
+  // arms
+  ctx.strokeStyle="darkred"; ctx.lineWidth=3;
+  ctx.beginPath();
+  if(m.moveCounter%40<20){
+    ctx.moveTo(m.x,m.y+25); ctx.lineTo(m.x-10,m.y+25);
+    ctx.moveTo(m.x+50,m.y+25); ctx.lineTo(m.x+60,m.y+25);
+  } else {
+    ctx.moveTo(m.x,m.y+25); ctx.lineTo(m.x-5,m.y+20);
+    ctx.moveTo(m.x+50,m.y+25); ctx.lineTo(m.x+55,m.y+30);
+  }
+  ctx.stroke();
+}
+
+function drawPrincess(){
+  ctx.fillStyle="yellow";
+  ctx.fillRect(princess.x, princess.y,30,50);
+  ctx.fillStyle="gold";
+  ctx.fillRect(princess.x+5, princess.y-15,20,15);
+  ctx.strokeStyle="gold"; ctx.lineWidth=3;
+  ctx.beginPath();
+  if(level<4){
+    if(princess.waveFrame===0){
+      ctx.moveTo(princess.x,princess.y+25); ctx.lineTo(princess.x-5,princess.y+15);
+      ctx.moveTo(princess.x+30,princess.y+25); ctx.lineTo(princess.x+35,princess.y+15);
+    } else {
+      ctx.moveTo(princess.x,princess.y+25); ctx.lineTo(princess.x-5,princess.y+35);
+      ctx.moveTo(princess.x+30,princess.y+25); ctx.lineTo(princess.x+35,princess.y+35);
+    }
+  } else {
+    // hug arms
+    ctx.moveTo(princess.x,princess.y+25); ctx.lineTo(princess.x-10,princess.y+35);
+    ctx.moveTo(princess.x+30,princess.y+25); ctx.lineTo(princess.x+40,princess.y+35);
+  }
+  ctx.stroke();
+}
+
+// Draw hearts
+function drawHearts(){
+  hearts.forEach(h=>{
+    ctx.fillStyle="pink";
+    ctx.fillRect(h.x,h.y,h.size,h.size);
+  });
+}
+
+// === DRAW ===
+function draw(){
+  // Background
+  if(level<3) ctx.fillStyle=levels[level].bg;
+  else ctx.fillStyle="#FFD700";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Ground
+  ctx.fillStyle="#654321";
+  ctx.fillRect(0,560,canvas.width,40);
+
+  // Level display
+  if(level<3){
+    ctx.fillStyle="white";
+    ctx.font="25px Arial";
+    ctx.fillText("Level "+(level+1),20,40);
+  }
+
+  if(level<3){ drawPlayer(); drawMonster();}
+  if(level===3){ drawPlayer(); drawPrincess();}
+  if(level===4){
+    ctx.fillStyle="white";
+    ctx.font="30px Arial";
+    ctx.fillText("PRINCE AND PRINCESS SHARE A LOVING HUG 💖",50,200);
+    drawPlayer();
+    // move prince slightly to lean in
+    player.x = princess.x - 35;
+    drawPrincess();
+    drawHearts();
+  }
+}
+
+// === GAME LOOP ===
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
 </body>
 </html>

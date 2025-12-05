@@ -3,98 +3,604 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Eco-Engineer (Shuffled!)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Silkscreen', sans-serif;
+            background-color: #7A6F5D;
+            color: #ffffff;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             height: 100vh;
             margin: 0;
-            text-align: center;
-            overflow: hidden;
+            image-rendering: pixelated;
         }
 
+        /* Base styles for all containers */
         .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
+            background-color: #0F360F;
+            width: 90%;
             max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
+            padding: 20px;
+            box-sizing: border-box;
+            border: 4px solid #0A300A;
+            border-right-color: #052405;
             border-radius: 4px;
-            border: 1px solid #555;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            text-align: center;
         }
 
-        .blink {
-            animation: blinker 1s linear infinite;
+        /* --- Main Menu --- */
+        #main-menu {
+            display: block; /* Show the menu by default */
+        }
+        
+        #main-menu h1 {
+            color: #ffcc00;
+            font-size: 2.2em;
+            margin-bottom: 30px;
         }
 
-        @keyframes blinker {
-            50% { opacity: 0; }
+        /* --- Difficulty Menu --- */
+        #difficulty-menu {
+            display: none; /* Hidden by default */
+        }
+        
+        #difficulty-menu h2 {
+            margin-bottom: 25px;
+        }
+        
+        #difficulty-menu .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        /* High Score Display */
+        #high-score {
+            font-size: 1.1em;
+            color: #ffcc00;
+            margin-top: 25px;
         }
 
-        /* Scanline effect for retro vibe */
-        .scanline {
+        /* --- Game Container --- */
+        #game-container {
+            display: none; /* Hidden by default */
+        }
+
+        /* Timer Bar */
+        #timer-bar-container {
             width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
+            height: 10px;
+            background-color: #052405;
+            border: 2px solid #0A300A;
+            border-radius: 2px;
+            margin-bottom: 15px;
+        }
+        
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background-color: #89e871; /* Bright green */
+            transition: width 0.1s linear; /* Smooth tick down */
         }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        #score-display {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 20px;
+            text-align: left;
         }
+
+        h2 {
+            color: #f0f0f0;
+            margin-top: 0;
+            font-size: 1.8em;
+            text-align: center;
+        }
+        
+        h3 {
+             color: #ffcc00;
+             font-size: 1.2em;
+             text-align: center;
+             margin: 10px 0;
+        }
+
+        #challenge-text {
+            font-size: 1em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            min-height: 40px;
+            color: #ffffff;
+            text-align: center;
+        }
+
+        #options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        button {
+            font-family: 'Silkscreen', sans-serif;
+            font-size: 1em;
+            padding: 16px;
+            background-color: #C4DEF3;
+            color: #0F360F;
+            border: 3px solid #0A300A;
+            box-shadow: 4px 4px 0px #9ECAEB;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: none;
+        }
+        
+        #start-button {
+             font-size: 1.2em;
+             padding: 20px;
+        }
+
+        button:hover {
+            background-color: #9ECAEB;
+        }
+        
+        button:active {
+            box-shadow: none;
+            transform: translate(4px, 4px);
+        }
+
+        button.locked {
+            background-color: #7A6F5D;
+            color: #0F360F;
+            box-shadow: 4px 4px 0px #5a5245;
+            cursor: not-allowed;
+        }
+        
+        button.locked:hover {
+            background-color: #7A6F5D;
+        }
+        
+        button.locked:active {
+            transform: none;
+            box-shadow: 4px 4px 0px #5a5245;
+        }
+
+        button:disabled {
+            background-color: #999999;
+            border-color: #666666;
+            box-shadow: 4px 4px 0px #777777;
+            cursor: not-allowed;
+        }
+
+        #feedback-text {
+            font-size: 1em;
+            line-height: 1.6;
+            font-weight: bold;
+            min-height: 50px;
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .correct { color: #89e871; } 
+        .incorrect { color: #f57a7a; }
+
+        /* Shake Animation */
+        @keyframes shake {
+          0% { transform: translate(1px, 1px); }
+          10% { transform: translate(-2px, -3px); }
+          20% { transform: translate(-4px, 0px); }
+          30% { transform: translate(3px, 2px); }
+          40% { transform: translate(1px, -1px); }
+          50% { transform: translate(-1px, 3px); }
+          60% { transform: translate(-3px, 1px); }
+          70% { transform: translate(4px, 1px); }
+          80% { transform: translate(-2px, -1px); }
+          90% { transform: translate(2px, 2px); }
+          100% { transform: translate(0, 0); }
+        }
+
+        .shake {
+          animation: shake 0.5s;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="scanline"></div>
-
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
-
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+    <div id="main-menu" class="container">
+        <h1>Eco-Engineer</h1>
+        <button id="start-button">Start Game</button>
+    </div>
+    
+    <div id="difficulty-menu" class="container">
+        <h2>Select Difficulty</h2>
+        <div class="button-container">
+            <button id="easy-button">Easy</button>
+            <button id="medium-button">Medium</button>
+            <button id="hard-button">Hard</button>
         </div>
+        <p id="high-score">High Score: 0</p>
     </div>
 
+    <div id="game-container" class="container">
+        <div id="timer-bar-container">
+            <div id="timer-bar"></div>
+        </div>
+        
+        <div id="score-display">Score: 0</div>
+        <h3 id="scenario-title"></h3>
+        <p id="challenge-text"></p>
+        <div id="options-container"></div>
+        <p id="feedback-text"></p>
+    </div>
+
+    <script>
+        // --- 1. Game Data (with Hints) ---
+        
+        const allLevels = {
+            easy: [
+                {
+                    scenario: "Problem: Polluted River",
+                    challenge: "A river is full of large, floating trash (bottles, bags). Which technique can remove this solid trash from the water?",
+                    options: ["Evaporation", "Sieving (Screening)", "Magnetism"],
+                    correctOption: "Sieving (Screening)",
+                    correctFeedback: "Correct! Large screens, which work like a giant sieve, are used to remove big pieces of trash from water.",
+                    incorrectFeedback: "Not quite. That method won't remove large pieces of floating trash from a river.",
+                    hint: "Think about how you'd separate spaghetti from cooking water."
+                },
+                {
+                    scenario: "Problem: Beach Contamination",
+                    challenge: "A beach's sand is mixed with sharp iron scraps. What's the best way to separate the iron from the sand?",
+                    options: ["Magnetism", "Filtration", "Sieving"],
+                    correctOption: "Magnetism",
+                    correctFeedback: "Yes! A giant magnet can pull the magnetic iron scraps out of the sand.",
+                    incorrectFeedback: "Try again. That technique won't be able to separate iron from sand.",
+                    hint: "Which of these methods uses a special force to pull *only* the iron?"
+                },
+                {
+                    scenario: "Problem: Oil Spill",
+                    challenge: "An oil tanker has spilled oil into the ocean. The oil is floating on top of the water. How can we separate these two liquids?",
+                    options: ["Skimming (Floating)", "Magnetism", "Filtration"],
+                    correctOption: "Skimming (Floating)",
+                    correctFeedback: "Right! Oil floats on water because it's less dense. It can be 'skimmed' off the top.",
+                    incorrectFeedback: "That won't work. The oil would clog a filter, and it isn't magnetic.",
+                    hint: "What does oil do when it's in water? Does it mix in, or does it...?"
+                }
+            ],
+            medium: [
+                {
+                    scenario: "Problem: Water Scarcity",
+                    challenge: "A coastal town has no fresh water, only salty ocean water. Which technique can remove the *dissolved* salt?",
+                    options: ["Filtration", "Evaporation", "Sieving"],
+                    correctOption: "Evaporation",
+                    correctFeedback: "Great job! If you boil the water (evaporation), the water turns to steam and leaves the salt behind.",
+                    incorrectFeedback: "That won't work. The salt is dissolved, meaning it's too small for a filter or sieve.",
+                    hint: "If you leave a cup of salt water in the sun, what disappears and what is left behind?"
+                },
+                {
+                    scenario: "Problem: Garden Soil",
+                    challenge: "You have a bucket of garden soil mixed with large pebbles. How can you separate the pebbles from the fine soil?",
+                    options: ["Sieving", "Magnetism", "Evaporation"],
+                    correctOption: "Sieving",
+                    correctFeedback: "Correct! A sieve has holes that let the small soil particles fall through, but stop the large pebbles.",
+                    incorrectFeedback: "That method won't work for separating two different-sized solids.",
+                    hint: "You need something with holes that are bigger than soil but smaller than pebbles."
+                },
+                {
+                    scenario: "Problem: Muddy Water",
+                    challenge: "After a flood, the water is full of fine mud. How can you separate the clear water from the mud?",
+                    options: ["Filtration", "Sieving", "Magnetism"],
+                    correctOption: "Filtration",
+                    correctFeedback: "Right! A filter paper has tiny holes that trap the solid mud but let the clear water pass through.",
+                    incorrectFeedback: "A sieve's holes are too big; the mud would go right through with the water.",
+                    hint: "This method uses a material with tiny, tiny holes, like a coffee filter."
+                }
+            ],
+            hard: [
+                {
+                    scenario: "Problem: Messy Workshop (Step 1)",
+                    challenge: "A box has iron bolts, sand, and pebbles mixed together. What is the *FIRST* step to separate the iron bolts?",
+                    options: ["Magnetism", "Sieving", "Filtration"],
+                    correctOption: "Magnetism",
+                    correctFeedback: "Exactly! Use a magnet first. This pulls out all the iron bolts, leaving just the sand and pebbles behind.",
+                    incorrectFeedback: "That might work later, but it's not the best *first* step for getting the iron out.",
+                    hint: "One of these materials is special. A magnet can pull it."
+                },
+                {
+                    scenario: "Problem: Messy Workshop (Step 2)",
+                    challenge: "Okay, the iron bolts are gone. Now you just have sand and pebbles. How do you separate them?",
+                    options: ["Sieving", "Filtration", "Evaporation"],
+                    correctOption: "Sieving",
+                    correctFeedback: "Smart! A sieve will trap the big pebbles and let the fine sand fall through. You've separated all three!",
+                    incorrectFeedback: "That won't work for separating two different-sized solids like pebbles and sand.",
+                    hint: "You have two solids of different sizes. How do you separate big rocks from small sand?"
+                }
+            ]
+        };
+
+        // --- 2. Game Variables ---
+        let currentLevelIndex = 0;
+        let score = 0;
+        let maxUnlockedDifficulty = 0;
+        let currentDifficultyIndex = 0;
+        let currentDifficultyLevels = [];
+        
+        let highScore = 0;
+        let timerInterval;
+        let timeRemaining; 
+        const QUESTION_TIME = 10000; 
+
+        // --- 3. Get HTML Elements ---
+        const mainMenu = document.getElementById("main-menu");
+        const startButton = document.getElementById("start-button");
+        
+        const difficultyMenu = document.getElementById("difficulty-menu");
+        const easyButton = document.getElementById("easy-button");
+        const mediumButton = document.getElementById("medium-button");
+        const hardButton = document.getElementById("hard-button");
+        const highScoreDisplay = document.getElementById("high-score");
+        
+        const gameContainer = document.getElementById("game-container");
+        const timerBar = document.getElementById("timer-bar");
+        const scenarioTitle = document.getElementById("scenario-title");
+        const challengeText = document.getElementById("challenge-text");
+        const optionsContainer = document.getElementById("options-container");
+        const feedbackText = document.getElementById("feedback-text");
+        const scoreDisplay = document.getElementById("score-display");
+
+        // --- 4. Core Game Functions ---
+        
+        function showMainMenu() {
+            mainMenu.style.display = "block";
+            difficultyMenu.style.display = "none";
+            gameContainer.style.display = "none";
+        }
+        
+        function showDifficultyMenu() {
+            mainMenu.style.display = "none";
+            difficultyMenu.style.display = "block";
+            gameContainer.style.display = "none";
+            
+            highScore = localStorage.getItem('ecoHighScore') || 0;
+            highScoreDisplay.textContent = `High Score: ${highScore}`;
+            
+            updateDifficultyButtons();
+        }
+        
+        function showGame() {
+            mainMenu.style.display = "none";
+            difficultyMenu.style.display = "none";
+            gameContainer.style.display = "block";
+        }
+        
+        function updateDifficultyButtons() {
+            if (maxUnlockedDifficulty < 1) {
+                mediumButton.classList.add("locked");
+                mediumButton.disabled = true;
+            } else {
+                mediumButton.classList.remove("locked");
+                mediumButton.disabled = false;
+            }
+            
+            if (maxUnlockedDifficulty < 2) {
+                hardButton.classList.add("locked");
+                hardButton.disabled = true;
+            } else {
+                hardButton.classList.remove("locked");
+                hardButton.disabled = false;
+            }
+        }
+        
+        // --- NEW: Shuffle Function ---
+        // This function takes an array and returns a shuffled version.
+        function shuffleArray(array) {
+            let currentIndex = array.length,  randomIndex;
+
+            // While there remain elements to shuffle.
+            while (currentIndex != 0) {
+                // Pick a remaining element.
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+
+                // And swap it with the current element.
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+        
+        
+        function selectDifficulty(difficultyIndex) {
+            currentDifficultyIndex = difficultyIndex;
+            
+            // --- THIS IS THE MODIFIED PART ---
+            if (difficultyIndex === 0) {
+                // Shuffle a *copy* of the easy levels
+                currentDifficultyLevels = shuffleArray([...allLevels.easy]);
+            } else if (difficultyIndex === 1) {
+                // Shuffle a *copy* of the medium levels
+                currentDifficultyLevels = shuffleArray([...allLevels.medium]);
+            } else {
+                // Shuffle a *copy* of the hard levels
+                currentDifficultyLevels = shuffleArray([...allLevels.hard]);
+            }
+            // --- END OF MODIFICATION ---
+            
+            showGame();
+            startGame();
+        }
+        
+        function startGame() {
+            currentLevelIndex = 0;
+            score = 0;
+            scoreDisplay.textContent = `Score: ${score}`;
+            loadLevel(currentDifficultyLevels[currentLevelIndex]);
+        }
+        
+        function startTimer() {
+            timeRemaining = 100;
+            timerBar.style.width = '100%';
+            timerBar.style.backgroundColor = '#89e871';
+            
+            clearInterval(timerInterval); 
+            
+            timerInterval = setInterval(() => {
+                timeRemaining -= (100 / (QUESTION_TIME / 100)); 
+                
+                if(timeRemaining < 30) {
+                    timerBar.style.backgroundColor = '#f57a7a';
+                }
+                
+                if (timeRemaining <= 0) {
+                    timeRemaining = 0;
+                    clearInterval(timerInterval);
+                }
+                
+                timerBar.style.width = `${timeRemaining}%`;
+                
+            }, 100);
+        }
+
+        function loadLevel(level) {
+            scenarioTitle.textContent = level.scenario;
+            challengeText.textContent = level.challenge;
+            feedbackText.textContent = "";
+            optionsContainer.innerHTML = "";
+            
+            startTimer(); 
+
+            level.options.forEach(option => {
+                const button = document.createElement("button");
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option, button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedOption, clickedButton) {
+            clearInterval(timerInterval); 
+            
+            const level = currentDifficultyLevels[currentLevelIndex];
+            const buttons = optionsContainer.querySelectorAll("button");
+            buttons.forEach(button => button.disabled = true);
+
+            if (selectedOption === level.correctOption) {
+                let timeBonus = Math.floor(timeRemaining / 10);
+                score += (10 + timeBonus); 
+                
+                feedbackText.textContent = `${level.correctFeedback} (+${timeBonus} time bonus!)`;
+                feedbackText.className = "correct";
+                clickedButton.style.backgroundColor = "#1B450E";
+                clickedButton.style.color = "#C4DEF3";
+                clickedButton.style.borderColor = "#052405";
+                clickedButton.style.boxShadow = "none";
+                clickedButton.style.transform = "translate(4px, 4px)";
+
+                setTimeout(() => {
+                    nextLevel();
+                }, 2500);
+
+            } else {
+                gameContainer.classList.add('shake');
+                
+                feedbackText.textContent = level.incorrectFeedback;
+                feedbackText.className = "incorrect";
+                clickedButton.style.backgroundColor = "#940F0F";
+                clickedButton.style.color = "#C4DEF3";
+                clickedButton.style.borderColor = "#052405";
+                clickedButton.style.boxShadow = "none";
+                clickedButton.style.transform = "translate(4px, 4px)";
+
+                setTimeout(() => {
+                    gameContainer.classList.remove('shake');
+                }, 500);
+
+                setTimeout(() => {
+                    feedbackText.textContent = "Hint: " + level.hint;
+                    feedbackText.className = "";
+                    
+                    buttons.forEach(button => {
+                        button.disabled = false;
+                        button.style.backgroundColor = "#C4DEF3";
+                        button.style.color = "#0F360F";
+                        button.style.border = "3px solid #0A300A";
+                        button.style.boxShadow = "4px 4px 0px #9ECAEB";
+                        button.style.transform = "none";
+                    });
+                }, 2000);
+            }
+            scoreDisplay.textContent = `Score: ${score}`;
+        }
+
+        function nextLevel() {
+            currentLevelIndex++;
+            if (currentLevelIndex < currentDifficultyLevels.length) {
+                loadLevel(currentDifficultyLevels[currentLevelIndex]);
+            } else {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('ecoHighScore', highScore);
+                feedbackText.textContent = "New High Score!";
+            } else {
+                feedbackText.textContent = "Good job!";
+            }
+            
+            if (currentDifficultyIndex === 0 && maxUnlockedDifficulty < 1) {
+                maxUnlockedDifficulty = 1; 
+            }
+            if (currentDifficultyIndex === 1 && maxUnlockedDifficulty < 2) {
+                maxUnlockedDifficulty = 2;
+            }
+            
+            scenarioTitle.textContent = "Challenge Complete!";
+            challengeText.textContent = `You finished with a final score of ${score}!`;
+            optionsContainer.innerHTML = "";
+            
+            const backButton = document.createElement("button");
+            backButton.textContent = "Back to Menu";
+            backButton.style.marginTop = "20px";
+            backButton.onclick = showDifficultyMenu;
+            optionsContainer.appendChild(backButton);
+        }
+
+        // --- 5. Start the Game Logic ---
+        
+        startButton.addEventListener('click', () => {
+            showDifficultyMenu();
+        });
+        
+        easyButton.addEventListener('click', () => {
+            if (!easyButton.disabled) {
+                selectDifficulty(0);
+            }
+        });
+        
+        mediumButton.addEventListener('click', () => {
+            if (!mediumButton.disabled) {
+                selectDifficulty(1);
+            }
+        });
+        
+        hardButton.addEventListener('click', () => {
+            if (!hardButton.disabled) {
+                selectDifficulty(2);
+            }
+        });
+        
+        // Show the main menu when the page first loads
+        showMainMenu();
+
+    </script>
 </body>
 </html>

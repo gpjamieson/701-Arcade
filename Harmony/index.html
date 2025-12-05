@@ -1,100 +1,895 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
-    <style>
-        body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
-        }
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DrawMyGuess</title>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Comic Sans MS', 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
+    html, body {
+      height: 100%;
+    }
 
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
+    .game-wrapper {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
 
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px 25px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
 
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
+    .title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #667eea;
+      margin: 0;
+    }
 
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
+    .scores {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
 
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
+    .score-box {
+      background: #f0f0f0;
+      padding: 8px 15px;
+      border-radius: 10px;
+      font-weight: 600;
+      color: #333;
+    }
 
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
-        }
+    .main-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: auto;
+    }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
-        }
-    </style>
-</head>
-<body>
+    .screen {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+    }
 
-    <div class="scanline"></div>
+    .screen h2 {
+      color: #333;
+      margin: 0 0 30px 0;
+      font-size: 32px;
+    }
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+    .word-options {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 30px 0;
+    }
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
-        </div>
+    .word-button {
+      padding: 20px;
+      font-size: 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+
+    .word-button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .word-button.selected {
+      background: #4caf50;
+      transform: scale(1.05);
+    }
+
+    .canvas-container {
+      margin: 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    canvas {
+      border: 4px solid #667eea;
+      border-radius: 12px;
+      cursor: crosshair;
+      touch-action: none;
+      background: white;
+    }
+
+    .tools {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .tool-button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #f0f0f0;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .tool-button:hover {
+      background: #e0e0e0;
+      border-color: #667eea;
+    }
+
+    .tool-button.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .primary-button {
+      padding: 15px 40px;
+      font-size: 18px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      margin-top: 20px;
+    }
+
+    .primary-button:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+    }
+
+    .primary-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .secondary-button {
+      padding: 12px 30px;
+      font-size: 16px;
+      background: #ff9800;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      margin-top: 15px;
+    }
+
+    .secondary-button:hover {
+      background: #f57c00;
+      transform: translateY(-2px);
+    }
+
+    .guess-options {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 30px 0;
+    }
+
+    .guess-button {
+      padding: 18px;
+      font-size: 18px;
+      background: #f0f0f0;
+      color: #333;
+      border: 3px solid #ddd;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+
+    .guess-button:hover {
+      background: #e0e0e0;
+      border-color: #667eea;
+      transform: translateX(5px);
+    }
+
+    .result-message {
+      font-size: 24px;
+      font-weight: bold;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+
+    .result-message.correct {
+      background: #d4edda;
+      color: #155724;
+      border: 3px solid #28a745;
+    }
+
+    .result-message.incorrect {
+      background: #f8d7da;
+      color: #721c24;
+      border: 3px solid #dc3545;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .info-text {
+      color: #666;
+      font-size: 16px;
+      margin: 15px 0;
+      line-height: 1.6;
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+
+    .color-option {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+    }
+
+    .color-option.active {
+      border-color: #333;
+      transform: scale(1.2);
+    }
+
+    .turn-indicator {
+      background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 18px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="game-wrapper">
+   <header class="header">
+    <h1 class="title" id="gameTitle">DrawMyGuess</h1>
+    <div class="scores">
+     <div class="score-box">
+      <span id="player1Name">Player 1</span>: <span id="player1Score">0</span>
+     </div>
+     <div class="score-box">
+      <span id="player2Name">Player 2</span>: <span id="player2Score">0</span>
+     </div>
     </div>
+   </header>
+   <main class="main-content"><!-- Turn Selection Screen -->
+    <div class="screen" id="turnScreen">
+     <h2>Who's Drawing First?</h2>
+     <div class="word-options"><button class="word-button" onclick="startTurn(1)"><span id="p1NameBtn">Player 1</span> Draws First</button> <button class="word-button" onclick="startTurn(2)"><span id="p2NameBtn">Player 2</span> Draws First</button>
+     </div>
+    </div><!-- Word Selection Screen -->
+    <div class="screen hidden" id="wordScreen">
+     <div class="turn-indicator" id="drawerIndicator"></div>
+     <h2>Pick a Word to Draw!</h2>
+     <p class="info-text">Don't let the other player see! 🤫</p>
+     <div class="word-options" id="wordOptions"></div><button class="primary-button" id="confirmWordBtn" onclick="confirmWord()" disabled>Confirm Choice</button>
+    </div><!-- Drawing Screen -->
+    <div class="screen hidden" id="drawingScreen">
+     <div class="turn-indicator" id="drawerIndicator2"></div>
+     <h2>Draw: <span id="selectedWord"></span></h2>
+     <p class="info-text">Draw your word! Don't let the guesser see the word above! 🎨</p>
+     <div class="canvas-container">
+      <canvas id="drawingCanvas" width="600" height="400"></canvas>
+      <div class="color-picker" id="colorPicker"></div>
+      <div class="tools"><button class="tool-button active" id="penBtn" onclick="selectTool('pen')">✏️ Pen</button> <button class="tool-button" id="eraserBtn" onclick="selectTool('eraser')">🧹 Eraser</button> <button class="tool-button" onclick="clearCanvas()">🗑️ Clear All</button>
+      </div>
+     </div><button class="primary-button" onclick="finishDrawing()">Done Drawing! Pass to Guesser →</button>
+    </div><!-- Guessing Screen -->
+    <div class="screen hidden" id="guessingScreen">
+     <div class="turn-indicator" id="guesserIndicator"></div>
+     <h2>What is this drawing?</h2>
+     <p class="info-text">Look at the drawing and pick your answer! 🤔</p>
+     <div class="canvas-container">
+      <canvas id="displayCanvas" width="600" height="400"></canvas>
+     </div>
+     <div class="guess-options" id="guessOptions"></div>
+    </div><!-- Result Screen -->
+    <div class="screen hidden" id="resultScreen">
+     <h2>Round Complete!</h2>
+     <div class="result-message" id="resultMessage"></div>
+     <p class="info-text" id="resultDetails"></p><button class="primary-button" onclick="showScienceQuestion()">Next Round (Answer Solubility Question)</button> <button class="secondary-button" onclick="newGame()">New Game</button>
+    </div><!-- Science Question Screen -->
+    <div class="screen hidden" id="scienceScreen">
+     <h2>🧪 Solubility Science Question</h2>
+     <p class="info-text">Answer this question to continue to the next round!</p>
+     <h3 id="scienceQuestion" style="color: #333; margin: 30px 0; font-size: 22px; line-height: 1.6;"></h3>
+     <div class="guess-options" id="scienceAnswers"></div>
+     <div class="feedback hidden" id="scienceFeedback"></div><button class="primary-button hidden" id="scienceContinueBtn" onclick="continueToNextRound()">Continue to Next Round</button>
+    </div>
+   </main>
+  </div>
+  <script>
+    const defaultConfig = {
+      game_title: "Drawing Guessing Game",
+      player1_name: "Player 1",
+      player2_name: "Player 2",
+      primary_color: "#667eea",
+      secondary_color: "#4caf50",
+      text_color: "#333333",
+      font_family: "Comic Sans MS",
+      font_size: 16
+    };
 
-</body>
+    let gameState = {
+      player1Score: 0,
+      player2Score: 0,
+      currentDrawer: null,
+      selectedWord: null,
+      currentOptions: [],
+      totalRounds: 0
+    };
+
+    let canvas, ctx, displayCanvas, displayCtx;
+    let isDrawing = false;
+    let currentTool = 'pen';
+    let currentColor = '#000000';
+    let dataInitialized = false;
+
+    const wordLists = [
+      ['🍕 Pizza', '🍎 Apple', '🌳 Tree'],
+      ['☀️ Sun', '🏠 House', '🐱 Cat'],
+      ['🚗 Car', '⭐ Star', '🌈 Rainbow'],
+      ['🎈 Balloon', '🎂 Cake', '🌸 Flower'],
+      ['✈️ Airplane', '🐶 Dog', '🍦 Ice Cream'],
+      ['🎸 Guitar', '📱 Phone', '⚽ Soccer Ball'],
+      ['🍔 Burger', '🌙 Moon', '🦋 Butterfly'],
+      ['🏖️ Beach', '🍌 Banana', '🔥 Fire']
+    ];
+
+    const solubilityQuestions = [
+      {
+        question: "Which substance will dissolve in water?",
+        answers: ["Salt", "Sand", "Wood", "Plastic"],
+        correct: 0
+      },
+      {
+        question: "Does sugar dissolve faster in hot water or cold water?",
+        answers: ["Cold water", "Hot water", "Same speed in both", "Sugar doesn't dissolve"],
+        correct: 1
+      },
+      {
+        question: "What do we call a substance that dissolves in water?",
+        answers: ["Insoluble", "Soluble", "Mixture", "Solid"],
+        correct: 1
+      },
+      {
+        question: "When you mix salt and water, which one is the solvent?",
+        answers: ["Salt", "Water", "Both", "Neither"],
+        correct: 1
+      },
+      {
+        question: "Which of these does NOT dissolve in water?",
+        answers: ["Sugar", "Salt", "Oil", "Baking soda"],
+        correct: 2
+      },
+      {
+        question: "What is a mixture where one substance dissolves in another called?",
+        answers: ["A solution", "A suspension", "A solid", "A gas"],
+        correct: 0
+      },
+      {
+        question: "Which will help sugar dissolve faster?",
+        answers: ["Putting it in the freezer", "Stirring it", "Leaving it alone", "Adding more sugar"],
+        correct: 1
+      },
+      {
+        question: "Can you see the particles of salt after it dissolves in water?",
+        answers: ["Yes, they float", "Yes, they sink", "No, you cannot see them", "Only with a magnifier"],
+        correct: 2
+      },
+      {
+        question: "What happens when you add too much sugar to water and it won't dissolve anymore?",
+        answers: ["The water evaporates", "The solution is saturated", "The sugar disappears", "The water turns to ice"],
+        correct: 1
+      },
+      {
+        question: "Which liquid mixes well with water?",
+        answers: ["Cooking oil", "Gasoline", "Vinegar", "Butter"],
+        correct: 2
+      },
+      {
+        question: "What is the substance that gets dissolved called?",
+        answers: ["Solvent", "Solute", "Water", "Liquid"],
+        correct: 1
+      },
+      {
+        question: "Does hot chocolate powder dissolve in milk?",
+        answers: ["No, never", "Yes, it dissolves", "Only in water", "Only in juice"],
+        correct: 1
+      },
+      {
+        question: "Which temperature helps most solids dissolve better?",
+        answers: ["Freezing cold", "Warm or hot", "It doesn't matter", "Room temperature only"],
+        correct: 1
+      },
+      {
+        question: "What happens when you stir a solution?",
+        answers: ["It makes things dissolve slower", "It helps things dissolve faster", "Nothing happens", "It stops dissolving"],
+        correct: 1
+      },
+      {
+        question: "Can salt dissolve in water?",
+        answers: ["No", "Yes", "Only in hot water", "Only in cold water"],
+        correct: 1
+      }
+    ];
+
+    const colors = ['#000000', '#FF0000', '#0000FF', '#00FF00', '#FFFF00', '#FF00FF', '#FFA500', '#8B4513'];
+
+    function initCanvas() {
+      canvas = document.getElementById('drawingCanvas');
+      ctx = canvas.getContext('2d');
+      displayCanvas = document.getElementById('displayCanvas');
+      displayCtx = displayCanvas.getContext('2d');
+
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 3;
+
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseout', stopDrawing);
+
+      canvas.addEventListener('touchstart', handleTouch);
+      canvas.addEventListener('touchmove', handleTouch);
+      canvas.addEventListener('touchend', stopDrawing);
+
+      createColorPicker();
+    }
+
+    function createColorPicker() {
+      const picker = document.getElementById('colorPicker');
+      picker.innerHTML = '';
+      colors.forEach((color, index) => {
+        const colorDiv = document.createElement('div');
+        colorDiv.className = 'color-option' + (index === 0 ? ' active' : '');
+        colorDiv.style.backgroundColor = color;
+        colorDiv.onclick = () => selectColor(color, colorDiv);
+        picker.appendChild(colorDiv);
+      });
+    }
+
+    function selectColor(color, element) {
+      currentColor = color;
+      currentTool = 'pen';
+      document.querySelectorAll('.color-option').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+      document.getElementById('penBtn').classList.add('active');
+      document.getElementById('eraserBtn').classList.remove('active');
+    }
+
+    function selectTool(tool) {
+      currentTool = tool;
+      document.getElementById('penBtn').classList.toggle('active', tool === 'pen');
+      document.getElementById('eraserBtn').classList.toggle('active', tool === 'eraser');
+    }
+
+    function getCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      
+      if (e.touches) {
+        return {
+          x: (e.touches[0].clientX - rect.left) * scaleX,
+          y: (e.touches[0].clientY - rect.top) * scaleY
+        };
+      }
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function startDrawing(e) {
+      isDrawing = true;
+      const pos = getCoordinates(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      
+      const pos = getCoordinates(e);
+      
+      if (currentTool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = 20;
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = currentColor;
+        ctx.lineWidth = 3;
+      }
+      
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
+
+    function handleTouch(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      canvas.dispatchEvent(mouseEvent);
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+      ctx.beginPath();
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function startTurn(player) {
+      gameState.currentDrawer = player;
+      showScreen('wordScreen');
+      
+      const drawerName = player === 1 ? 
+        (window.elementSdk?.config.player1_name || defaultConfig.player1_name) : 
+        (window.elementSdk?.config.player2_name || defaultConfig.player2_name);
+      
+      document.getElementById('drawerIndicator').textContent = `${drawerName} is Drawing`;
+      
+      const randomWords = wordLists[Math.floor(Math.random() * wordLists.length)];
+      gameState.currentOptions = randomWords;
+      
+      const wordOptions = document.getElementById('wordOptions');
+      wordOptions.innerHTML = '';
+      
+      randomWords.forEach(word => {
+        const btn = document.createElement('button');
+        btn.className = 'word-button';
+        btn.textContent = word;
+        btn.onclick = () => selectWord(word, btn);
+        wordOptions.appendChild(btn);
+      });
+    }
+
+    function selectWord(word, button) {
+      gameState.selectedWord = word;
+      document.querySelectorAll('#wordOptions .word-button').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      button.classList.add('selected');
+      document.getElementById('confirmWordBtn').disabled = false;
+    }
+
+    function confirmWord() {
+      showScreen('drawingScreen');
+      document.getElementById('selectedWord').textContent = gameState.selectedWord;
+      
+      const drawerName = gameState.currentDrawer === 1 ? 
+        (window.elementSdk?.config.player1_name || defaultConfig.player1_name) : 
+        (window.elementSdk?.config.player2_name || defaultConfig.player2_name);
+      
+      document.getElementById('drawerIndicator2').textContent = `${drawerName} is Drawing`;
+      clearCanvas();
+    }
+
+    function finishDrawing() {
+      displayCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+      displayCtx.drawImage(canvas, 0, 0);
+      
+      showScreen('guessingScreen');
+      
+      const guesserName = gameState.currentDrawer === 1 ? 
+        (window.elementSdk?.config.player2_name || defaultConfig.player2_name) : 
+        (window.elementSdk?.config.player1_name || defaultConfig.player1_name);
+      
+      document.getElementById('guesserIndicator').textContent = `${guesserName} is Guessing`;
+      
+      const guessOptions = document.getElementById('guessOptions');
+      guessOptions.innerHTML = '';
+      
+      const shuffled = [...gameState.currentOptions].sort(() => Math.random() - 0.5);
+      
+      shuffled.forEach(word => {
+        const btn = document.createElement('button');
+        btn.className = 'guess-button';
+        btn.textContent = word;
+        btn.onclick = () => makeGuess(word);
+        guessOptions.appendChild(btn);
+      });
+    }
+
+    async function makeGuess(guess) {
+      const correct = guess === gameState.selectedWord;
+      
+      gameState.guessedCorrectly = correct;
+      
+      showScreen('resultScreen');
+      
+      const resultMsg = document.getElementById('resultMessage');
+      const resultDetails = document.getElementById('resultDetails');
+      
+      if (correct) {
+        resultMsg.className = 'result-message correct';
+        resultMsg.textContent = '✓ Correct! Great job! 🎉';
+        
+        if (gameState.currentDrawer === 1) {
+          gameState.player2Score++;
+        } else {
+          gameState.player1Score++;
+        }
+        
+        const guesserName = gameState.currentDrawer === 1 ? 
+          (window.elementSdk?.config.player2_name || defaultConfig.player2_name) : 
+          (window.elementSdk?.config.player1_name || defaultConfig.player1_name);
+        
+        resultDetails.textContent = `${guesserName} guessed "${gameState.selectedWord}" correctly! +1 point`;
+      } else {
+        resultMsg.className = 'result-message incorrect';
+        resultMsg.textContent = '✗ Wrong Guess!';
+        resultDetails.textContent = `The correct answer was "${gameState.selectedWord}"`;
+      }
+      
+      gameState.totalRounds++;
+      updateScores();
+      await saveScores();
+    }
+
+    function updateScores() {
+      document.getElementById('player1Score').textContent = gameState.player1Score;
+      document.getElementById('player2Score').textContent = gameState.player2Score;
+    }
+
+    async function saveScores() {
+      if (!dataInitialized || !window.dataSdk) return;
+      
+      const result = await window.dataSdk.create({
+        player1_score: gameState.player1Score,
+        player2_score: gameState.player2Score,
+        total_rounds: gameState.totalRounds
+      });
+      
+      if (!result.isOk) {
+        console.error('Failed to save scores');
+      }
+    }
+
+    function showScienceQuestion() {
+      showScreen('scienceScreen');
+      
+      const questionData = solubilityQuestions[Math.floor(Math.random() * solubilityQuestions.length)];
+      gameState.currentScienceQuestion = questionData;
+      
+      document.getElementById('scienceQuestion').textContent = questionData.question;
+      
+      const answersContainer = document.getElementById('scienceAnswers');
+      answersContainer.innerHTML = '';
+      
+      questionData.answers.forEach((answer, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'guess-button';
+        btn.textContent = answer;
+        btn.onclick = () => checkScienceAnswer(index, btn);
+        answersContainer.appendChild(btn);
+      });
+      
+      document.getElementById('scienceFeedback').classList.add('hidden');
+      document.getElementById('scienceContinueBtn').classList.add('hidden');
+    }
+
+    function checkScienceAnswer(selected, button) {
+      const feedback = document.getElementById('scienceFeedback');
+      const buttons = document.querySelectorAll('#scienceAnswers .guess-button');
+      buttons.forEach(btn => btn.onclick = null);
+      
+      const correct = selected === gameState.currentScienceQuestion.correct;
+      
+      if (correct) {
+        feedback.textContent = '✓ Correct! Well done on your science knowledge! 🧪';
+        feedback.className = 'result-message correct';
+        button.style.borderColor = '#28a745';
+        button.style.background = '#d4edda';
+        document.getElementById('scienceContinueBtn').classList.remove('hidden');
+      } else {
+        feedback.textContent = '✗ Incorrect. The correct answer was: ' + gameState.currentScienceQuestion.answers[gameState.currentScienceQuestion.correct] + '. Try a different question!';
+        feedback.className = 'result-message incorrect';
+        button.style.borderColor = '#dc3545';
+        button.style.background = '#f8d7da';
+        
+        buttons[gameState.currentScienceQuestion.correct].style.borderColor = '#28a745';
+        buttons[gameState.currentScienceQuestion.correct].style.background = '#d4edda';
+        
+        setTimeout(() => {
+          showScienceQuestion();
+        }, 3000);
+      }
+      
+      feedback.classList.remove('hidden');
+    }
+
+    function continueToNextRound() {
+      gameState.currentDrawer = gameState.currentDrawer === 1 ? 2 : 1;
+      startTurn(gameState.currentDrawer);
+    }
+
+    function nextRound() {
+      gameState.currentDrawer = gameState.currentDrawer === 1 ? 2 : 1;
+      startTurn(gameState.currentDrawer);
+    }
+
+    function newGame() {
+      gameState.player1Score = 0;
+      gameState.player2Score = 0;
+      gameState.totalRounds = 0;
+      updateScores();
+      showScreen('turnScreen');
+    }
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.add('hidden');
+      });
+      document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    const dataHandler = {
+      onDataChanged(data) {
+        if (data.length > 0) {
+          const latest = data[data.length - 1];
+          gameState.player1Score = latest.player1_score || 0;
+          gameState.player2Score = latest.player2_score || 0;
+          gameState.totalRounds = latest.total_rounds || 0;
+          updateScores();
+        }
+      }
+    };
+
+    async function onConfigChange(config) {
+      const titleElement = document.getElementById('gameTitle');
+      const p1NameElements = [
+        document.getElementById('player1Name'),
+        document.getElementById('p1NameBtn')
+      ];
+      const p2NameElements = [
+        document.getElementById('player2Name'),
+        document.getElementById('p2NameBtn')
+      ];
+      
+      if (titleElement) {
+        titleElement.textContent = config.game_title || defaultConfig.game_title;
+        titleElement.style.color = config.primary_color || defaultConfig.primary_color;
+      }
+      
+      p1NameElements.forEach(el => {
+        if (el) el.textContent = config.player1_name || defaultConfig.player1_name;
+      });
+      
+      p2NameElements.forEach(el => {
+        if (el) el.textContent = config.player2_name || defaultConfig.player2_name;
+      });
+      
+      const baseSize = config.font_size || defaultConfig.font_size;
+      const fontFamily = config.font_family || defaultConfig.font_family;
+      
+      if (titleElement) {
+        titleElement.style.fontSize = `${baseSize * 1.75}px`;
+        titleElement.style.fontFamily = `${fontFamily}, 'Comic Sans MS', sans-serif`;
+      }
+    }
+
+    async function initializeApp() {
+      initCanvas();
+      
+      if (window.dataSdk) {
+        const initResult = await window.dataSdk.init(dataHandler);
+        if (initResult.isOk) {
+          dataInitialized = true;
+        }
+      }
+      
+      if (window.elementSdk) {
+        await window.elementSdk.init({
+          defaultConfig,
+          onConfigChange,
+          mapToCapabilities: (config) => ({
+            recolorables: [
+              {
+                get: () => config.primary_color || defaultConfig.primary_color,
+                set: (value) => {
+                  window.elementSdk.config.primary_color = value;
+                  window.elementSdk.setConfig({ primary_color: value });
+                }
+              }
+            ],
+            borderables: [],
+            fontEditable: {
+              get: () => config.font_family || defaultConfig.font_family,
+              set: (value) => {
+                window.elementSdk.config.font_family = value;
+                window.elementSdk.setConfig({ font_family: value });
+              }
+            },
+            fontSizeable: {
+              get: () => config.font_size || defaultConfig.font_size,
+              set: (value) => {
+                window.elementSdk.config.font_size = value;
+                window.elementSdk.setConfig({ font_size: value });
+              }
+            }
+          }),
+          mapToEditPanelValues: (config) => new Map([
+            ["game_title", config.game_title || defaultConfig.game_title],
+            ["player1_name", config.player1_name || defaultConfig.player1_name],
+            ["player2_name", config.player2_name || defaultConfig.player2_name]
+          ])
+        });
+        
+        await onConfigChange(window.elementSdk.config);
+      }
+    }
+
+    initializeApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a9566e4d12eaac6',t:'MTc2NDk1NzE5NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

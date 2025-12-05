@@ -3,98 +3,1050 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Solubility Escape</title>
+    <!-- Load Tailwind CSS for utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        :root {
+            --color-primary: #10b981; /* Emerald 500 */
+            --color-secondary: #064e3b; /* Emerald 900 */
+            --color-text: #e2e8f0; /* Slate 200 */
+            --color-background: #0f172a; /* Slate 900 */
+            --glow-filter: drop-shadow(0 0 5px var(--color-primary)) drop_shadow(0 0 10px var(--color-primary));
+        }
+
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text);
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
         }
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
+        .game-container {
             width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
+            max-width: 1000px;
+            background-color: var(--color-secondary);
+            border: 2px solid var(--color-primary);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            animation: pulse-border 5s infinite alternate;
+            position: relative; 
         }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        @keyframes pulse-border {
+            from { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+            to { box-shadow: 0 0 30px rgba(16, 185, 129, 0.8), 0 0 5px rgba(255, 255, 255, 0.2); }
+        }
+
+        .hud-status {
+            color: var(--color-primary);
+            text-shadow: 0 0 5px var(--color-primary);
+            font-weight: 700;
+        }
+        
+        /* --- SPACESHIP MAP STYLES (Base container) --- */
+        #spaceship-map {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            border: 2px solid #64748b;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            transition: background-color 1s ease, background-image 1s ease;
+        }
+
+        /* Level Specific Backgrounds */
+        #spaceship-map.environment-space-interior { background-color: #1e293b; background-image: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #334155 10px, #334155 12px); }
+        #spaceship-map.environment-lunar-surface { 
+            background-color: #4a4e54; 
+            border-color: #a0a7b4;
+            background-image: radial-gradient(circle at 30% 70%, rgba(0, 0, 0, 0.2) 1px, transparent 1px),
+                              radial-gradient(circle at 80% 20%, rgba(0, 0, 0, 0.3) 1px, transparent 1px),
+                              linear-gradient(to bottom, #4a4e54, #383b40);
+        }
+        #spaceship-map.environment-jupiter-storm { 
+            background-color: #a0522d; 
+            border-color: #ffcc80;
+            background-image: repeating-linear-gradient(90deg, #a0522d, #a0522d 20px, #cd853f 20px, #cd853f 40px),
+                radial-gradient(circle at 75% 50%, rgba(255, 0, 0, 0.3) 20%, transparent 20%);
+        }
+        #spaceship-map.environment-martian-dust { 
+            background-color: #c1440e; 
+            border-color: #e5975f;
+            background-image: radial-gradient(circle at 15% 40%, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                radial-gradient(circle at 85% 70%, rgba(0, 0, 0, 0.15) 1px, transparent 1px),
+                linear-gradient(to bottom, #c1440e, #a83a0a);
+        }
+        #spaceship-map.environment-deep-nebula { 
+            background-color: #0d0d1e; 
+            border-color: #8a2be2;
+            background-image: radial-gradient(circle at 20% 80%, rgba(138, 43, 226, 0.4) 10%, transparent 10%),
+                radial-gradient(circle at 70% 30%, rgba(0, 255, 255, 0.3) 15%, transparent 15%),
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0.5px, transparent 0.5px);
+        }
+
+        #corridor {
+            position: absolute; left: 50%; transform: translateX(-50%); width: 70%; height: 100%;
+            background-color: #0f172a; border-left: 3px solid var(--color-primary); border-right: 3px solid var(--color-primary);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5); z-index: 1; opacity: 0.7; transition: opacity 1s ease;
+        }
+
+        /* Faint path for non-interior levels */
+        #spaceship-map:not(.environment-space-interior) #corridor {
+            opacity: 0.05; box-shadow: none; border-color: #a0a7b4; background-color: transparent;
+        }
+
+        #player-icon {
+            position: absolute; transform: translate(-50%, -50%); width: 40px; height: 56px;
+            background-color: transparent; border-radius: 0; box-shadow: 0 0 10px #fcd34d;
+            transition: top 0.7s ease-out, left 0.7s ease-out, opacity 0.5s; z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 1; /* Default opacity */
+        }
+        
+        /* NEW: Player Defeat visual feedback */
+        #player-icon.player-defeated {
+            opacity: 0.5;
+            filter: grayscale(80%) brightness(50%);
+            animation: shake 0.5s infinite alternate; /* Shaking effect */
+            transition: all 1s ease-in-out;
+        }
+        @keyframes shake {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            25% { transform: translate(-53%, -47%) rotate(1deg); }
+            75% { transform: translate(-47%, -53%) rotate(-1deg); }
+            100% { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+
+        .alien-icon {
+            position: absolute; transform: translate(-50%, -50%); width: 30px; height: 40px; 
+            background-color: transparent; z-index: 5;
+            transition: opacity 0.5s ease-in-out, transform 0.7s ease-out;
+            opacity: 1;
+            /* Alien animation: subtle movement */
+            animation: alien-pulse 2s infinite alternate;
+        }
+        .alien-icon.destroyed {
+            opacity: 0 !important;
+            transform: translate(-50%, -50%) scale(0.1) rotate(180deg);
+        }
+        @keyframes alien-pulse {
+            from { transform: translate(-50%, -50%) scale(1.0); }
+            to { transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        /* Alien Hit/Defeat visual feedback */
+        .alien-icon.alien-hit {
+            filter: drop-shadow(0 0 10px #ff0000) drop-shadow(0 0 20px #ffcc00);
+            animation: alien-hit-flash 0.2s 3 alternate; /* Flash red/yellow 3 times */
+            transform: translate(-50%, -50%) scale(1.2); /* Briefly scale up on hit */
+        }
+        @keyframes alien-hit-flash {
+            from { filter: drop-shadow(0 0 5px #ff0000); }
+            to { filter: drop-shadow(0 0 15px #ffcc00); }
+        }
+        
+        /* NEW: Attacking Aliens in Failure Scene */
+        .attacker-alien {
+            position: absolute;
+            transform: translate(-50%, -50%); 
+            width: 30px; height: 40px; 
+            background-color: transparent; 
+            z-index: 15; /* Higher z-index than player to appear on top */
+            transition: top 1s ease-in, left 1s ease-in, opacity 0.5s; /* Smooth drop */
+            opacity: 0;
+            /* Animation to make them look aggressive */
+            animation: alien-charge 0.3s infinite alternate;
+        }
+        @keyframes alien-charge {
+            from { filter: drop-shadow(0 0 5px #ff4136); }
+            to { filter: drop-shadow(0 0 10px #ff0000); }
+        }
+
+
+        #exit-door {
+            position: absolute; left: 50%; top: 90%; transform: translate(-50%, -50%); width: 60%; 
+            height: 20px; background-color: #dc2626; box-shadow: 0 0 20px #dc2626; border-radius: 5px;
+            z-index: 5; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+            font-weight: 700; color: white; border: 2px solid #f87171; letter-spacing: 2px;
+        }
+        
+        /* Level Specific Door Styles */
+        #spaceship-map.environment-lunar-surface #exit-door { background-color: #3b82f6; box-shadow: 0 0 20px #3b82f6; border-color: #93c5fd; }
+        #spaceship-map.environment-jupiter-storm #exit-door { background-color: #f59e0b; box-shadow: 0 0 20px #f59e0b; border-color: #fcd34d; }
+        #spaceship-map.environment-martian-dust #exit-door { background-color: #ef4444; box-shadow: 0 0 20px #ef4444; border-color: #fca5a5; }
+        #spaceship-map.environment-deep-nebula #exit-door { background-color: #c084fc; box-shadow: 0 0 20px #c084fc; border-color: #e9d5ff; }
+
+        .question-text { min-height: 100px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; text-align: center; }
+
+        .answer-button {
+            width: 100%; padding: 1rem 1.5rem; margin-bottom: 0.75rem; background-color: #334155;
+            color: var(--color-text); border: 2px solid #64748b; border-radius: 0.5rem;
+            transition: all 0.2s ease-in-out; text-align: left; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            font-size: 1.1rem;
+        }
+
+        .answer-button:hover { background-color: #475569; border-color: var(--color-primary); transform: translateY(-2px); box-shadow: 0 0 10px var(--color-primary); }
+        .answer-button:active { background-color: var(--color-primary); color: var(--color-background); box-shadow: var(--glow-filter); transform: translateY(0); }
+
+        /* Message Box Styling */
+        .modal-box {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9);
+            z-index: 1000; display: none; justify-content: center; align-items: center;
+        }
+        
+        .modal-content {
+            background: #1e293b; border: 3px solid var(--color-primary); padding: 3rem;
+            border-radius: 1rem; box-shadow: 0 0 25px var(--color-primary); text-align: center;
+            max-width: 500px; width: 90%;
+        }
+        .modal-box.active { display: flex; }
+        .message-box.active { display: flex; } /* For the smaller in-game feedback box */
+        
+        .character-select-card {
+            background-color: #0f172a; border: 2px solid #334155; cursor: pointer;
+            transition: all 0.2s; padding: 1rem; border-radius: 0.5rem;
+        }
+
+        .character-select-card:hover { border-color: var(--color-primary); box-shadow: 0 0 15px var(--color-primary); transform: scale(1.05); }
+
+        /* Style for the failure message */
+        .caught-by-aliens {
+            color: #ff4136; /* Bright Red */
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 0 0 15px #ff4136, 0 0 25px #ff4136;
+            animation: red-pulse 1s infinite alternate;
+            margin-top: 1rem;
+            letter-spacing: 3px;
+        }
+        @keyframes red-pulse {
+            from { opacity: 0.8; text-shadow: 0 0 10px #ff4136; }
+            to { opacity: 1.0; text-shadow: 0 0 20px #ff4136, 0 0 30px rgba(255, 65, 54, 0.5); }
+        }
+
+        /* Green Correct Popup for Feedback */
+        #correct-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001; 
+            font-size: 3rem; 
+            font-weight: 700;
+            color: #10B981; 
+            text-shadow: 0 0 10px #10B981, 0 0 20px rgba(16, 185, 129, 0.7);
+            opacity: 0;
+            transition: all 0.5s ease-out;
+            pointer-events: none; 
+            letter-spacing: 5px;
+        }
+
+        #correct-popup.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
         }
     </style>
 </head>
 <body>
 
-    <div class="scanline"></div>
+    <!-- Character Selection Modal -->
+    <div id="character-selection-modal" class="modal-box active">
+        <div class="modal-content">
+            <h2 class="text-3xl mb-6 text-white" style="filter: var(--glow-filter);">SELECT YOUR ASTRONAUT</h2>
+            <p class="mb-8 text-slate-300">Choose your character to begin the five-level Solubility Escape challenge!</p>
+            
+            <div class="flex flex-col sm:flex-row gap-6 justify-center">
+                
+                <!-- Astronaut 1 Card (BLUE) -->
+                <div id="select-boy" class="character-select-card" onclick="selectCharacter('boy')">
+                    <div id="boy-icon-preview" class="w-full h-24 flex justify-center items-center scale-150">
+                        <!-- SVG will be injected by JS for preview -->
+                    </div>
+                    <!-- Updated text to BOY -->
+                    <p class="text-xl mt-4 hud-status text-blue-400">BOY</p>
+                </div>
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+                <!-- Astronaut 2 Card (PINK) -->
+                <div id="select-girl" class="character-select-card" onclick="selectCharacter('girl')">
+                    <div id="girl-icon-preview" class="w-full h-24 flex justify-center items-center scale-150">
+                        <!-- SVG will be injected by JS for preview -->
+                    </div>
+                    <!-- Updated text to GIRL -->
+                    <p class="text-xl mt-4 hud-status text-pink-400">GIRL</p>
+                </div>
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+            </div>
         </div>
     </div>
 
+
+    <div class="game-container" style="display: none;" id="game-main-content">
+        <!-- Title (remains centered at the top) -->
+        <div class="mb-4 text-center">
+            <h1 class="text-4xl mb-2 text-white" style="filter: var(--glow-filter);">SOLUBILITY ESCAPE</h1>
+            <p class="text-sm text-gray-400">Alien Ship Access Terminal</p>
+        </div>
+        
+        <!-- NEW DUAL-COLUMN LAYOUT -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mt-4">
+            
+            <!-- LEFT COLUMN: MAP & STATUS (4/12 width) -->
+            <div class="md:col-span-4 flex flex-col items-center p-3 bg-slate-800 rounded-lg border-2 border-slate-700">
+                <h2 id="route-title" class="text-xl mb-3 text-white hud-status">ESCAPE ROUTE - LEVEL 1</h2>
+                
+                <!-- SPACESHIP MAP -->
+                <div id="spaceship-map" class="environment-space-interior">
+                    <div id="corridor"></div>
+                    <div id="alien-container">
+                        <!-- Aliens injected here -->
+                    </div>
+                    <div id="player-icon" title="You are here">
+                        <!-- Selected SVG will be injected here -->
+                    </div>
+                    <div id="exit-door" title="Escape">ESCAPE</div>
+                </div>
+
+                <!-- Score Status -->
+                <div id="status" class="mt-4 hud-status text-center text-lg">
+                    Level 1 | Question 1 of 3 | Score: 0
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: QUIZ INTERFACE (8/12 width) -->
+            <div class="md:col-span-8 flex flex-col">
+                <h2 class="text-xl mb-3 text-white hud-status text-center">SCIENCE CONSOLE CHALLENGE</h2>
+                
+                <!-- Question Display -->
+                <div class="bg-slate-800 p-6 mb-6 rounded-lg border-2 border-emerald-600 flex-grow">
+                    <p id="question-text" class="question-text text-xl">
+                        Loading...
+                    </p>
+                    <p id="failure-message" class="caught-by-aliens" style="display: none;">CAUGHT BY ALIENS</p>
+                </div>
+
+                <!-- Answer Buttons -->
+                <div id="answer-buttons" class="flex flex-col">
+                    <!-- Buttons will be injected here by JavaScript -->
+                </div>
+            </div>
+
+        </div>
+
+        <button id="restart-button" class="mt-6 w-full answer-button bg-slate-600 border-none" style="display: none;">
+            RESTART LEVEL
+        </button>
+        
+        <!-- Green Correct Popup -->
+        <div id="correct-popup">ALIEN NEUTRALIZED!</div>
+    </div>
+
+    <!-- Custom Message Box (for in-game feedback) -->
+    <div id="message-box" class="modal-box">
+        <div class="modal-content">
+            <h2 id="message-title" class="text-xl font-bold mb-3 text-emerald-400"></h2>
+            <p id="message-content" class="mb-4"></p>
+            <button id="message-ok" class="answer-button mt-4">OK / Continue</button>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME DATA: LEVELS (Grade 7 Solutes and Solvents Unit) ---
+        
+        const level1Questions = [
+            { question: "What is the substance that dissolves another substance? In a salt-water solution, this would be the water.", answers: ["Solvent", "Solute", "Suspension", "Precipitate"], correctAnswer: "Solvent", explanation: "The **Solvent** is the part that does the dissolving. Since water dissolves the salt, it is the solvent." },
+            { question: "In a solution made from Kool-Aid powder and water, what is the Kool-Aid powder?", answers: ["Solvent", "Solute", "Solution", "Dilute"], correctAnswer: "Solute", explanation: "The **Solute** is the substance that gets dissolved by the solvent." },
+            { question: "A solution where the particles are mixed perfectly and you can't see the different parts is called a:", answers: ["Heterogeneous mixture", "Suspension", "Homogeneous mixture", "Saturated solvent"], correctAnswer: "Homogeneous mixture", explanation: "A **Homogeneous mixture** is uniform throughout, meaning it looks the same everywhere (like clear Kool-Aid)." }
+        ];
+        const level2Questions = [
+            { question: "What physical action helps a solid solute dissolve faster by constantly bringing fresh solvent to the surface of the solute?", answers: ["Stirring", "Freezing", "Centrifuging", "Filtering"], correctAnswer: "Stirring", explanation: "**Stirring** increases the rate of dissolving by moving the solvent molecules around the solute faster." },
+            { question: "Crushing a sugar cube into tiny granules before adding it to water helps it dissolve faster because it increases the:", answers: ["Volume", "Temperature", "Surface area", "Density"], correctAnswer: "Surface area", explanation: "More **surface area** means more parts of the sugar can touch the water at once, speeding up the dissolving process." },
+            { question: "Which change would make a solid substance dissolve **slower** in water?", answers: ["Warming the water", "Stirring the mixture", "Using powdered solute", "Using a whole chunk of solute"], correctAnswer: "Using a whole chunk of solute", explanation: "A large chunk has less surface area touching the water, making it dissolve slower than powder." }
+        ];
+        const level3Questions = [
+            { question: "How does warming up the water typically affect how fast solid sugar dissolves?", answers: ["Dissolves much slower", "Has no effect on speed", "Dissolves faster", "Causes the sugar to boil"], correctAnswer: "Dissolves faster", explanation: "Adding heat gives the water molecules more energy, making them bump into the sugar particles more often and break them apart faster." },
+            { question: "A solution that has a small amount of solute dissolved compared to the amount of solvent is called:", answers: ["Concentrated", "Saturated", "Dilute", "Supersaturated"], correctAnswer: "Dilute", explanation: "**Dilute** means the solution is weak because it doesn't have much solute in it." },
+            { question: "If you want to dissolve the maximum possible amount of salt into a glass of water, should you use hot water or cold water?", answers: ["Cold water", "Lukewarm water", "Hot water", "It doesn't matter"], correctAnswer: "Hot water", explanation: "For most solids (like salt), their solubility **increases** in hot water, allowing more to dissolve." }
+        ];
+        const level4Questions = [
+            { question: "If you add sugar to water and it all dissolves easily, the solution is currently:", answers: ["Saturated", "Supersaturated", "Unsaturated", "Precipitated"], correctAnswer: "Unsaturated", explanation: "An **Unsaturated** solution means you can still dissolve more solute into it." },
+            { question: "The point where you have added so much salt that no more can dissolve, and extra salt starts settling at the bottom, means the solution is:", answers: ["Unstable", "Saturated", "Dilute", "Evaporated"], correctAnswer: "Saturated", explanation: "A **Saturated** solution is holding the maximum amount of solute possible at that temperature." },
+            { question: "If you cool down a saturated sugar solution and some of the sugar begins to turn back into solid crystals at the bottom, this process is called:", answers: ["Dissolving", "Filtering", "Precipitation", "Dilution"], correctAnswer: "Precipitation", explanation: "**Precipitation** is when dissolved solute comes out of the solution and turns back into a solid." }
+        ];
+        const level5Questions = [
+            { question: "Water is often called the 'universal solvent' because it can dissolve so many different substances. What property allows it to do this?", answers: ["It is very heavy.", "Its molecules are tiny and round.", "Its molecules have charged ends (it is polar).", "It has a low boiling point."], correctAnswer: "Its molecules have charged ends (it is polar).", explanation: "Water's **polarity** (charged ends) means it can attract and pull apart the particles of many other substances, especially ionic compounds and other polar molecules." },
+            { question: "Which type of mixture looks cloudy and will settle out if you leave it alone for a while?", answers: ["Solution", "Homogeneous mixture", "Suspension", "Alloy"], correctAnswer: "Suspension", explanation: "A **Suspension** is a heterogeneous mixture where particles are large enough to be seen and will eventually settle out (like muddy water)." },
+            { question: "What is the general term for the process of a solute being mixed completely into a solvent to form a solution?", answers: ["Evaporation", "Filtration", "Dissolution", "Condensation"], correctAnswer: "Dissolution", explanation: "**Dissolution** is the scientific term for dissolving—the process of a solute forming a homogeneous mixture with a solvent." }
+        ];
+        
+        // --- GAME PATH COORDINATES (X, Y) ---
+        const pathPositions = [
+            { x: 50, y: 10 },  // 0: Start
+            { x: 50, y: 37 },  // 1: Checkpoint 1 / Alien 1
+            { x: 50, y: 64 },  // 2: Checkpoint 2 / Alien 2
+            { x: 50, y: 90 }   // 3: Exit / Door
+        ];
+
+        // --- CHARACTER & ENEMY SVGs ---
+        // Base size for pixel art SVG is 20x28 (Astronaut)
+        const boyAstronautSVG = `
+            <svg viewBox="0 0 20 28" width="40" height="56" xmlns="http://www.w3.org/2000/svg" style="display: block; shape-rendering: crispEdges;">
+                <rect x="4" y="0" width="12" height="12" fill="#FFFFFF"/> 
+                <rect x="5" y="1" width="10" height="10" fill="#FFFFFF"/> 
+                <rect x="3" y="0" width="1" height="12" fill="#444444"/>
+                <rect x="16" y="0" width="1" height="12" fill="#444444"/>
+                <rect x="4" y="11" width="12" height="1" fill="#444444"/> 
+                <rect x="6" y="3" width="8" height="6" fill="#A080C0"/>
+                <rect x="7" y="5" width="6" height="3" fill="#F5DEB3"/>
+                <rect x="5" y="12" width="10" height="10" fill="#FFFFFF" stroke="#444444" stroke-width="0.5"/>
+                <rect x="7" y="15" width="6" height="3" fill="#00BFFF"/>
+                <rect x="6" y="22" width="4" height="4" fill="#FFFFFF" stroke="#444444" stroke-width="0.5"/>
+                <rect x="10" y="22" width="4" height="4" fill="#FFFFFF" stroke="#444444" stroke-width="0.5"/>
+            </svg>
+        `;
+
+        const girlAstronautSVG = `
+            <svg viewBox="0 0 20 28" width="40" height="56" xmlns="http://www.w3.org/2000/svg" style="display: block; shape-rendering: crispEdges;">
+                <rect x="2" y="10" width="2" height="3" fill="#8B4513"/> 
+                <rect x="16" y="10" width="2" height="3" fill="#8B4513"/>
+                <rect x="4" y="0" width="12" height="12" fill="#FFFFFF"/> 
+                <rect x="5" y="1" width="10" height="10" fill="#FFFFFF"/> 
+                <rect x="3" y="0" width="1" height="12" fill="#444444"/>
+                <rect x="16" y="0" width="1" height="12" fill="#444444"/>
+                <rect x="4" y="11" width="12" height="1" fill="#444444"/> 
+                <rect x="6" y="3" width="8" height="6" fill="#A080C0"/>
+                <rect x="7" y="5" width="6" height="3" fill="#F5DEB3"/>
+                <rect x="5" y="12" width="10" height="10" fill="#FFFFFF" stroke="#444444" stroke-width="0.5"/>
+                <rect x="7" y="15" width="6" height="3" fill="#FF00FF"/> 
+                <rect x="6" y="22" width="4" height="4" fill="#FFFFFF" stroke="#444444" stroke-width="0.5"/>
+                <rect x="10" y="22" width="4" height="4" fill="#FFFFFF" stroke="#444444" stroke-width="0.5"/>
+            </svg>
+        `;
+        
+        // ALIEN SVG 
+        const alienSVG = `
+            <svg viewBox="0 0 20 24" width="30" height="40" xmlns="http://www.w3.org/2000/svg" style="display: block; shape-rendering: crispEdges;">
+                <rect x="0" y="0" width="20" height="24" fill="transparent"/>
+                <!-- Colors -->
+                <defs>
+                    <g id="green_dark"> <rect width="1" height="1" fill="#006400"/> </g>
+                    <g id="green_medium"> <rect width="1" height="1" fill="#228B22"/> </g>
+                    <g id="green_light"> <rect width="1" height="1" fill="#90EE90"/> </g>
+                    <g id="black"> <rect width="1" height="1" fill="#000000"/> </g>
+                    <g id="white"> <rect width="1" height="1" fill="#FFFFFF"/> </g>
+                </defs>
+
+                <!-- Outline and main body based on the pixel map (Y, X coordinates) -->
+                
+                <!-- Head/Dome Outline -->
+                <use href="#green_dark" x="5" y="0"/>
+                <use href="#green_dark" x="14" y="0"/>
+                <use href="#green_dark" x="4" y="1"/>
+                <use href="#green_dark" x="15" y="1"/>
+                <use href="#green_dark" x="3" y="2"/>
+                <use href="#green_dark" x="16" y="2"/>
+                <use href="#green_dark" x="2" y="3"/>
+                <use href="#green_dark" x="17" y="3"/>
+                <use href="#green_dark" x="1" y="4"/>
+                <use href="#green_dark" x="18" y="4"/>
+                <use href="#green_dark" x="1" y="5"/>
+                <use href="#green_dark" x="18" y="5"/>
+                
+                <!-- Main Head Fill (Medium Green) -->
+                <rect x="6" y="0" width="8" height="1" fill="#228B22"/>
+                <rect x="5" y="1" width="10" height="1" fill="#228B22"/>
+                <rect x="4" y="2" width="12" height="1" fill="#228B22"/>
+                <rect x="3" y="3" width="14" height="1" fill="#228B22"/>
+                <rect x="2" y="4" width="16" height="1" fill="#228B22"/>
+                
+                <!-- Eyes (Black Mask) -->
+                <rect x="3" y="5" width="5" height="4" fill="#000000"/>
+                <rect x="12" y="5" width="5" height="4" fill="#000000"/>
+
+                <!-- Eyes (White Pupils) -->
+                <use href="#white" x="6" y="6"/>
+                <use href="#white" x="13" y="6"/>
+                
+                <!-- Face (Medium Green) -->
+                <rect x="2" y="5" width="1" height="4" fill="#228B22"/>
+                <rect x="17" y="5" width="1" height="4" fill="#228B22"/>
+                <rect x="9" y="5" width="2" height="4" fill="#228B22"/>
+                <rect x="1" y="6" width="1" height="3" fill="#228B22"/>
+                <rect x="18" y="6" width="1" height="3" fill="#228B22"/>
+                
+                <!-- Mouth/Nose area (Light Green) -->
+                <rect x="7" y="8" width="6" height="1" fill="#90EE90"/>
+                
+                <!-- Neck/Shoulders -->
+                <rect x="0" y="9" width="3" height="1" fill="#006400"/>
+                <rect x="17" y="9" width="3" height="1" fill="#006400"/>
+                <rect x="3" y="9" width="14" height="1" fill="#228B22"/>
+
+                <!-- Body (Medium Green) -->
+                <rect x="2" y="10" width="16" height="1" fill="#228B22"/>
+                <rect x="2" y="11" width="16" height="1" fill="#228B22"/>
+                <rect x="3" y="12" width="14" height="1" fill="#228B22"/>
+                <rect x="3" y="13" width="14" height="1" fill="#228B22"/>
+                <rect x="4" y="14" width="12" height="1" fill="#228B22"/>
+                <rect x="5" y="15" width="10" height="1" fill="#228B22"/>
+
+                <!-- Arms (Outline) -->
+                <use href="#green_dark" x="0" y="10"/>
+                <use href="#green_dark" x="1" y="11"/>
+                <use href="#green_dark" x="0" y="12"/>
+                <use href="#green_dark" x="19" y="10"/>
+                <use href="#green_dark" x="18" y="11"/>
+                <use href="#green_dark" x="19" y="12"/>
+                
+                <!-- Arms (Fill) -->
+                <rect x="0" y="11" width="1" height="1" fill="#228B22"/>
+                <rect x="19" y="11" width="1" height="1" fill="#228B22"/>
+                <rect x="1" y="10" width="1" height="1" fill="#228B22"/>
+                <rect x="18" y="10" width="1" height="1" fill="#228B22"/>
+
+                <!-- Hips/Legs -->
+                <rect x="5" y="16" width="10" height="1" fill="#006400"/>
+                <rect x="6" y="17" width="8" height="1" fill="#228B22"/>
+                <rect x="6" y="18" width="8" height="1" fill="#228B22"/>
+                <rect x="6" y="19" width="2" height="1" fill="#006400"/>
+                <rect x="12" y="19" width="2" height="1" fill="#006400"/>
+
+                <!-- Inner Leg Detail/Outline -->
+                <rect x="8" y="17" width="4" height="1" fill="#006400"/>
+                <rect x="8" y="18" width="4" height="1" fill="#006400"/>
+
+                <!-- Legs Fill -->
+                <rect x="6" y="19" width="2" height="1" fill="#228B22"/>
+                <rect x="12" y="19" width="2" height="1" fill="#228B22"/>
+                <rect x="6" y="20" width="2" height="1" fill="#228B22"/>
+                <rect x="12" y="20" width="2" height="1" fill="#228B22"/>
+                <rect x="6" y="21" width="2" height="1" fill="#006400"/>
+                <rect x="12" y="21" width="2" height="1" fill="#006400"/>
+
+                <!-- Feet (Shadow) -->
+                <rect x="4" y="22" width="4" height="1" fill="#006400"/>
+                <rect x="12" y="22" width="4" height="1" fill="#006400"/>
+                <rect x="4" y="23" width="2" height="1" fill="#006400"/>
+                <rect x="14" y="23" width="2" height="1" fill="#006400"/>
+
+            </svg>
+        `;
+
+        // --- GAME STATE ---
+        let currentLevel = 1;
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isGameActive = true;
+        let selectedCharacter = 'boy'; // Default character
+        let forcedStartLevel = 1; // FORCED START: Set to 1 as requested by user
+
+        // --- DOM ELEMENTS ---
+        const gameMainContent = document.getElementById('game-main-content');
+        const selectionModal = document.getElementById('character-selection-modal');
+        const boyIconPreview = document.getElementById('boy-icon-preview');
+        const girlIconPreview = document.getElementById('girl-icon-preview');
+        const playerIcon = document.getElementById('player-icon');
+        
+        const questionTextEl = document.getElementById('question-text');
+        const answerButtonsEl = document.getElementById('answer-buttons');
+        const statusEl = document.getElementById('status');
+        const restartButton = document.getElementById('restart-button');
+        const messageBox = document.getElementById('message-box');
+        const messageTitle = document.getElementById('message-title');
+        const messageContent = document.getElementById('message-content');
+        const messageOkButton = document.getElementById('message-ok');
+        const spaceshipMapEl = document.getElementById('spaceship-map');
+        const alienContainer = document.getElementById('alien-container');
+        const exitDoorEl = document.getElementById('exit-door');
+        const routeTitleEl = document.getElementById('route-title');
+        const failureMessageEl = document.getElementById('failure-message');
+        const correctPopup = document.getElementById('correct-popup');
+
+        // --- CHARACTER SELECTION LOGIC ---
+
+        /**
+         * Sets the character and begins the game.
+         */
+        window.selectCharacter = function(character) {
+            selectedCharacter = character;
+            selectionModal.classList.remove('active');
+            gameMainContent.style.display = 'block';
+            // Music removed: no call to startAmbientMusic() here.
+            startGame();
+        }
+        
+        /**
+         * Injects the chosen SVG into the player icon element.
+         */
+        function updatePlayerIcon() {
+            if (selectedCharacter === 'boy') {
+                playerIcon.innerHTML = boyAstronautSVG;
+            } else {
+                playerIcon.innerHTML = girlAstronautSVG;
+            }
+        }
+
+        // --- UTILITY FUNCTIONS ---
+
+        function getCurrentQuestions() {
+            if (currentLevel === 1) return level1Questions;
+            if (currentLevel === 2) return level2Questions;
+            if (currentLevel === 3) return level3Questions;
+            if (currentLevel === 4) return level4Questions;
+            if (currentLevel === 5) return level5Questions;
+            return [];
+        }
+
+        function updateMapStyle() {
+            spaceshipMapEl.className = ''; 
+            exitDoorEl.textContent = 'EXIT'; 
+            routeTitleEl.textContent = `ESCAPE ROUTE - LEVEL ${currentLevel}`;
+
+            if (currentLevel === 1) {
+                spaceshipMapEl.classList.add('environment-space-interior');
+                exitDoorEl.textContent = 'ESCAPE SHIP'; 
+            } else if (currentLevel === 2) {
+                spaceshipMapEl.classList.add('environment-lunar-surface');
+                exitDoorEl.textContent = 'LUNAR BASE';
+            } else if (currentLevel === 3) {
+                spaceshipMapEl.classList.add('environment-jupiter-storm');
+                exitDoorEl.textContent = 'JUPITER LAB';
+            } else if (currentLevel === 4) {
+                spaceshipMapEl.classList.add('environment-martian-dust');
+                exitDoorEl.textContent = 'MARS HAB';
+            } else if (currentLevel === 5) {
+                spaceshipMapEl.classList.add('environment-deep-nebula');
+                exitDoorEl.textContent = 'HOME PORT';
+            }
+        }
+        
+        /**
+         * Places aliens at all checkpoints between the start and the exit.
+         * Clears any existing aliens (including temporary attackers).
+         */
+        function setupMapEntities() {
+            alienContainer.innerHTML = '';
+            const totalQuestions = getCurrentQuestions().length;
+            
+            // Aliens are placed at checkpoints 1 up to (totalQuestions - 1)
+            // Example: 3 questions -> 2 aliens at positions 1 and 2.
+            for (let i = 1; i < totalQuestions; i++) {
+                const alienEl = document.createElement('div');
+                alienEl.classList.add('alien-icon');
+                alienEl.id = `alien-${i}`; // ID matches the position index
+                alienEl.innerHTML = alienSVG;
+                
+                const pos = pathPositions[i];
+                if (pos) {
+                    alienEl.style.top = `${pos.y}%`;
+                    // Offset aliens slightly from the center path for better visibility
+                    alienEl.style.left = `${pos.x - 10}%`; 
+                    alienContainer.appendChild(alienEl);
+                }
+            }
+        }
+
+        /**
+         * Removes or hides the alien at the player's new score position.
+         */
+        function destroyAlien(positionIndex) {
+            // Note: positionIndex is the *new score*, e.g., if score is 1, it means the alien at position 1 is defeated.
+            const alienEl = document.getElementById(`alien-${positionIndex}`);
+            if (alienEl) {
+                // Use a class to trigger CSS transition for destruction
+                alienEl.classList.add('destroyed');
+            }
+        }
+
+        function showMessage(title, content, callback) {
+            messageTitle.textContent = title;
+            messageContent.innerHTML = content;
+            failureMessageEl.style.display = 'none'; // Ensure failure message is hidden
+            correctPopup.classList.remove('active'); // Ensure success popup is hidden
+            messageBox.classList.add('active');
+
+            messageOkButton.onclick = () => {
+                messageBox.classList.remove('active');
+                if (callback) {
+                    callback();
+                }
+            };
+        }
+
+        function updateStatus() {
+            const questions = getCurrentQuestions();
+            const totalQuestions = questions.length;
+            
+            let questionDisplay;
+            
+            if (currentQuestionIndex >= totalQuestions) {
+                questionDisplay = "Final Check";
+            } else {
+                questionDisplay = `Question ${currentQuestionIndex + 1} of ${totalQuestions}`;
+            }
+            
+            statusEl.textContent = `Level ${currentLevel} | ${questionDisplay} | Score: ${score}/${totalQuestions}`;
+            
+            setTimeout(updateMapPosition, 10);
+        }
+
+        function updateMapPosition() {
+            const position = pathPositions[score];
+            const totalQuestions = getCurrentQuestions().length;
+
+            if (position) {
+                playerIcon.style.top = `${position.y}%`;
+                playerIcon.style.left = `${position.x}%`; 
+            }
+            
+            // Reset player opacity/state if not mid-attack
+            playerIcon.classList.remove('player-defeated');
+            playerIcon.style.opacity = 1;
+            
+            if (score === totalQuestions) {
+                playerIcon.style.boxShadow = '0 0 10px var(--color-primary)';
+            } else {
+                 playerIcon.style.boxShadow = '0 0 10px #fcd34d';
+            }
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                // Correct destructuring swap
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function loadQuestion() {
+            const questions = getCurrentQuestions();
+            failureMessageEl.style.display = 'none'; // Hide failure message when loading new Q
+            correctPopup.classList.remove('active'); // Hide popup
+
+            if (currentQuestionIndex >= questions.length) {
+                endLevel();
+                return;
+            }
+
+            const currentQ = questions[currentQuestionIndex];
+            // Simple display for Grade 7 questions
+            questionTextEl.textContent = currentQ.question;
+            
+            answerButtonsEl.innerHTML = ''; 
+            restartButton.style.display = 'none';
+            isGameActive = true;
+            updateStatus();
+
+            const shuffledAnswers = shuffleArray([...currentQ.answers]);
+            shuffledAnswers.forEach(answer => {
+                const button = document.createElement('button');
+                button.textContent = answer;
+                button.classList.add('answer-button');
+                button.onclick = () => checkAnswer(answer);
+                answerButtonsEl.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedAnswer) {
+            if (!isGameActive) return;
+
+            isGameActive = false;
+            const currentQ = getCurrentQuestions()[currentQuestionIndex];
+            const isCorrect = selectedAnswer === currentQ.correctAnswer;
+            
+            if (isCorrect) {
+                const alienToDefeatIndex = score + 1;
+                const alienEl = document.getElementById(`alien-${alienToDefeatIndex}`);
+
+                // 1. Instant visual feedback (Popup)
+                correctPopup.textContent = "ALIEN NEUTRALIZED!";
+                correctPopup.classList.add('active');
+
+                // 2. Add temporary hit effect to alien
+                if (alienEl) {
+                    alienEl.classList.add('alien-hit');
+                }
+                
+                // 3. Process logic after visual feedback delay
+                setTimeout(() => {
+                    // 4. Remove hit effect and start destruction animation
+                    if (alienEl) {
+                        alienEl.classList.remove('alien-hit');
+                    }
+                    
+                    correctPopup.classList.remove('active');
+                    
+                    score++;
+                    destroyAlien(score); // This applies the 'destroyed' class and triggers fade/scale
+
+                    // 5. Show the modal message
+                    const title = "SYSTEM UNLOCK: ACCESS GRANTED";
+                    const content = `Correct! ${currentQ.explanation}<br><br>The next sequence is unlocked. **Alien neutralized and position advanced!**`;
+                    
+                    showMessage(title, content, nextQuestion);
+                }, 750); // Pop up visible for 750ms
+                
+            } else {
+                // Immediate feedback for incorrect
+                const title = "SYSTEM LOCKDOWN: INCORRECT INPUT";
+                const content = `Incorrect. The correct answer was **${currentQ.correctAnswer}**.<br><br>**Explanation:** ${currentQ.explanation}<br><br>Security is reinforced. You must try the next sequence, but the alien remains!`;
+                
+                showMessage(title, content, nextQuestion);
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+        
+        /**
+         * Staging the alien attack scene on failure.
+         */
+        function stageAlienAttack(defeatPositionIndex) {
+            const playerPos = pathPositions[defeatPositionIndex];
+            if (!playerPos) return;
+
+            // 1. Create and position the two attackers (initially above the scene)
+            alienContainer.innerHTML += `
+                <div id="attacker-alien-1" class="attacker-alien" style="top: -10%; left: 30%;">
+                    ${alienSVG}
+                </div>
+                <div id="attacker-alien-2" class="attacker-alien" style="top: -10%; left: 70%;">
+                    ${alienSVG}
+                </div>
+            `;
+
+            const attacker1 = document.getElementById('attacker-alien-1');
+            const attacker2 = document.getElementById('attacker-alien-2');
+            
+            // 2. Set the player to the exact failure position (if they moved)
+            updateMapPosition(); 
+            
+            // 3. Start the drop animation (make them visible and set their final position)
+            setTimeout(() => {
+                attacker1.style.opacity = 1;
+                attacker2.style.opacity = 1;
+                
+                // Final positions: land around the player icon's location
+                attacker1.style.top = `${playerPos.y + 5}%`; // Slightly below player
+                attacker1.style.left = `${playerPos.x - 10}%`; // Left of player
+
+                attacker2.style.top = `${playerPos.y - 5}%`; // Slightly above player
+                attacker2.style.left = `${playerPos.x + 10}%`; // Right of player
+
+                // Bring any remaining main alien forward for the scene
+                const mainAlienEl = document.getElementById(`alien-${defeatPositionIndex}`);
+                if (mainAlienEl && !mainAlienEl.classList.contains('destroyed')) {
+                    mainAlienEl.style.zIndex = 15; 
+                }
+
+            }, 50);
+
+            // 4. Start player defeat animation after a short delay
+            setTimeout(() => {
+                playerIcon.classList.add('player-defeated');
+                
+                // 5. End the attack animation and show restart UI after the scene
+                setTimeout(() => {
+                    // Hide attackers
+                    attacker1.style.opacity = 0;
+                    attacker2.style.opacity = 0;
+                    
+                    // Final defeated look for player
+                    playerIcon.classList.remove('player-defeated');
+                    playerIcon.style.opacity = 0.5; 
+                    
+                    // Show the final message and restart button
+                    failureMessageEl.style.display = 'block';
+                    answerButtonsEl.innerHTML = `
+                        <p class="text-center text-lg mt-4 text-red-300">
+                            Mission Failed: ${defeatPositionIndex}/${getCurrentQuestions().length} sequences solved.<br>
+                            The remaining aliens have overpowered your terminal. You must retry Level ${currentLevel}.
+                        </p>
+                    `;
+                    restartButton.style.display = 'block';
+                    restartButton.textContent = `RETRY LEVEL ${currentLevel}`;
+                    restartButton.onclick = restartCurrentLevel;
+
+                }, 1200); // Wait for the attack to happen (1.2s)
+
+            }, 1000); // Wait 1s for attackers to land
+        }
+
+        /**
+         * Re-initializes the current level state and reloads the first question.
+         */
+        function restartCurrentLevel() {
+            const currentQList = getCurrentQuestions();
+            // Reshuffle questions for replay
+            shuffleArray(currentQList); 
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            isGameActive = true;
+            restartButton.textContent = 'RESTART LEVEL';
+            restartButton.onclick = restartCurrentLevel; // Keep the same restart function
+
+            // Clean up old state
+            playerIcon.style.opacity = 1;
+            playerIcon.classList.remove('player-defeated');
+
+            updateMapStyle(); 
+            setupMapEntities(); // Reset and clean up aliens (including temporary attackers)
+            loadQuestion();
+        }
+
+        // --- LEVEL TRANSITION FUNCTIONS ---
+        
+        function initializeLevel(level, questions, title, message, callback) {
+            currentLevel = level;
+            shuffleArray(questions);
+            currentQuestionIndex = 0;
+            score = 0;
+            playerIcon.style.opacity = 1; // Ensure full opacity on new level start
+            updateMapStyle(); 
+            setupMapEntities(); // Setup aliens for the new level
+            loadQuestion();
+            showMessage(title, message, callback);
+        }
+
+        function endLevel() {
+            const questions = getCurrentQuestions();
+            const finalScore = score;
+            const totalQuestions = questions.length;
+            
+            if (finalScore === totalQuestions) {
+                // Success: Advance to next level
+                playerIcon.style.opacity = 1; // Ensure full opacity if won
+                
+                if (currentLevel === 1) {
+                    initializeLevel(
+                        2, level2Questions, 
+                        "MOON LANDING SUCCESSFUL!", 
+                        "You have escaped the alien ship and landed on the Moon! The next challenge is to reach the Lunar Base. **Solve these sequences on dissolving speed (Stirring and Surface Area) to traverse the moon's surface.**", 
+                        () => {}
+                    );
+                    return; 
+                }
+                if (currentLevel === 2) {
+                    initializeLevel(
+                        3, level3Questions, 
+                        "JUPITER ARRIVAL: ATMOSPHERIC DIVE", 
+                        "You are now descending into Jupiter's stormy atmosphere! Use your knowledge of **Temperature and Concentration** to stabilize your vessel in the turbulent clouds. Proceed carefully!", 
+                        () => {}
+                    );
+                    return; 
+                }
+                if (currentLevel === 3) {
+                    initializeLevel(
+                        4, level4Questions, 
+                        "MARS LANDING: DUST AND CRYSTALS", 
+                        "You've reached the dusty surface of Mars. You must analyze data from ancient Martian rivers. Use your knowledge of **Saturation limits** to find stable ground.", 
+                        () => {}
+                    );
+                    return;
+                }
+                if (currentLevel === 4) {
+                    initializeLevel(
+                        5, level5Questions, 
+                        "FINAL JUMP: DEEP NEBULA", 
+                        "This is the final sequence! You are in a strange Deep Nebula. Only mastering the final principles—**Water as a Universal Solvent and Types of Mixtures**—will unlock the jump gate home!", 
+                        () => {}
+                    );
+                    return;
+                }
+                
+                // If Level 5 complete
+                if (currentLevel === 5) {
+                    const title = "COSMIC VICTORY! HOME PORT REACHED.";
+                    const message = `You solved all five levels and are safe! Your mastery of Solutes and Solvents saved the mission. Congratulations, Space Cadet!`;
+                    questionTextEl.textContent = title;
+                    answerButtonsEl.innerHTML = `<p class="text-center text-lg mt-4 text-emerald-300">${message}</p>`;
+                    restartButton.style.display = 'block';
+                    restartButton.textContent = 'START NEW GAME';
+                    restartButton.onclick = () => { gameMainContent.style.display = 'none'; selectionModal.classList.add('active'); };
+                    updateStatus();
+                    isGameActive = false;
+                }
+            } else {
+                // Failure: Trigger the defeat scene
+                questionTextEl.textContent = `ALERT: ESCAPE ROUTE BLOCKED!`;
+                answerButtonsEl.innerHTML = ''; // Clear buttons immediately
+                
+                stageAlienAttack(finalScore); 
+                
+                updateStatus();
+                isGameActive = false;
+            }
+        }
+
+        /**
+         * Resets the game state and starts the game at the appropriate level.
+         */
+        function startGame() {
+            // Set the character icon on the map
+            updatePlayerIcon();
+
+            // Determine the starting level
+            const startLevel = forcedStartLevel || 1;
+            
+            // Reshuffle all questions
+            [level1Questions, level2Questions, level3Questions, level4Questions, level5Questions].forEach(shuffleArray);
+
+            let title, message, questions;
+
+            if (startLevel === 5) {
+                questions = level5Questions;
+                title = "SIMULATION JUMP: DEEP NEBULA (Level 5)";
+                message = "The system has been set directly to the final challenge! You are in a strange Deep Nebula. Only mastering the principles of **Water as the Universal Solvent and the Types of Mixtures** will unlock the jump gate home! Good luck, Agent. Your mission starts now.";
+            } else {
+                // Default Level 1 initialization
+                questions = level1Questions;
+                title = "MISSION START: ALIEN SHIP INFILTRATION";
+                message = "Welcome back, Agent. You were beamed directly onto the ship's deck and held in a containment cell. Solve the **Basic Solubility Definitions** sequences to escape Level 1.";
+            }
+            
+            currentLevel = startLevel;
+            currentQuestionIndex = 0;
+            score = 0;
+            isGameActive = true;
+            updateMapStyle(); 
+            setupMapEntities(); // Setup aliens for the chosen level
+            loadQuestion();
+
+            showMessage(title, message, () => {});
+        }
+        
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            // Initial button logic to reset to character selection
+            restartButton.addEventListener('click', () => {
+                 // If the main restart button is clicked, check if it's a 'START NEW GAME' button
+                 if(restartButton.textContent === 'START NEW GAME') {
+                     gameMainContent.style.display = 'none';
+                     selectionModal.classList.add('active');
+                 } else {
+                     restartCurrentLevel(); // Default behavior is to restart the current level
+                 }
+            });
+            
+            // Show character previews
+            boyIconPreview.innerHTML = boyAstronautSVG;
+            girlIconPreview.innerHTML = girlAstronautSVG;
+            
+            // The game starts in the selection modal.
+        };
+
+    </script>
 </body>
 </html>

@@ -3,98 +3,1259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Eco Runner: Nature Parkour 3rd Person</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Tone.js for simple game sounds -->
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+    
     <style>
+        /* Custom CSS for game aesthetics */
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; /* Deep purple background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            background: #2a3e5c; /* Dark blue frame */
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
+            border: 4px solid #4CAF50;
+            position: relative; 
         }
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
+        #gameCanvas {
             width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
+            /* Maintain aspect ratio */
+            max-height: 450px;
+            aspect-ratio: 16 / 9;
+            background-color: #87CEEB; /* Light sky blue */
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            touch-action: none; /* Prevent scrolling on mobile */
         }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        .info-panel {
+            width: 100%;
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: center;
+            padding: 10px 0;
+            color: #E0E0E0;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
+        #totalSeedsDisplay {
+            text-align: left;
+            color: #FFCC00;
+        }
+        #sessionScoreDisplay {
+            text-align: center;
+        }
+        #healthDisplay {
+            text-align: right;
+            font-size: 1.5rem; /* Larger for hearts */
+        }
+
+        .button-group {
+            padding: 10px 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .game-button {
+            padding: 10px 20px;
+            border-radius: 9999px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px #104212;
+            border: none;
+            background-color: #4CAF50; /* Green primary color */
+            color: white;
+        }
+        
+        .shop-button {
+            background-color: #FFCC00;
+            color: #1a1a2e;
+            box-shadow: 0 4px #b38f00;
+        }
+        .shop-button:hover {
+            background-color: #ffe066;
+            box-shadow: 0 2px #b38f00;
+        }
+
+        .game-button:hover {
+            background-color: #64dd64;
+            box-shadow: 0 2px #104212;
+            transform: translateY(2px);
+        }
+
+        .game-button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        /* Message box styling */
+        .message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            z-index: 100;
+            border: 3px solid #FFCC00;
+            box-shadow: 0 0 40px rgba(255, 204, 0, 0.5);
+            display: none; 
+        }
+        
+        /* Question Box Styling */
+        .question-box {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            z-index: 101; 
+            border: 3px solid #4CAF50;
+        }
+        .question-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #FFCC00;
+            margin-bottom: 10px;
+        }
+        .question-text {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+        .answer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .answer-button {
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #2a3e5c;
+            border: 2px solid #4CAF50;
+            color: white;
+        }
+        .answer-button:hover {
+            background-color: #4CAF50;
+            color: black;
+        }
+        
+        /* Shop Box Styling */
+        .shop-box {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            z-index: 101;
+            border: 3px solid #FFCC00;
+        }
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .shop-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #FFCC00;
+        }
+        .shop-total-seeds {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .shop-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .skin-card {
+            background: #2a3e5c;
+            border: 2px solid #FFCC00;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .skin-card-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .skin-preview { 
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            margin: 0 auto 10px auto;
+            border: 2px solid white;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+        .skin-button {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .skin-buy {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .skin-buy:hover { background-color: #64dd64; }
+        .skin-equip {
+            background-color: #87CEEB;
+            color: black;
+        }
+        .skin-equip:hover { background-color: #b3e5fc; }
+        .skin-equipped {
+            background-color: #757575;
+            color: #E0E0E0;
+            cursor: not-allowed;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="scanline"></div>
+<div class="game-container">
+    <div class="info-panel">
+        <span id="totalSeedsDisplay">TOTAL SEEDS: 0</span>
+        <span id="sessionScoreDisplay">SCORE: 0</span>
+        <span id="healthDisplay">❤️❤️❤️</span>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="450"></canvas>
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
-
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
-        </div>
+    <div class="button-group">
+        <button id="startButton" class="game-button">Start Game</button>
+        <button id="shopButton" class="game-button shop-button" onclick="openShop()">Shop</button>
+        <button id="resetButton" class="game-button" disabled>Reset Game</button>
     </div>
 
+    <div id="messageBox" class="message-box">
+        <h2 class="text-3xl font-bold mb-4" id="messageTitle"></h2>
+        <p class="mb-6" id="messageText"></p>
+        <button id="closeMessageButton" class="game-button">Continue</button>
+    </div>
+
+    <div id="questionBox" class="question-box">
+        <h2 id="questionTitle" class="question-title">Eco-Science Question!</h2>
+        <p id="questionText" class="question-text">What is the process where plants make their own food?</p>
+        <div id="answerButtons" class="answer-grid">
+            <button class="answer-button">Photosynthesis</button>
+            <button class="answer-button">Respiration</button>
+            <button class="answer-button">Composting</button>
+            <button class="answer-button">Evaporation</button>
+        </div>
+    </div>
+    
+    <div id="shopBox" class="shop-box">
+        <div class="shop-header">
+            <h2 class="shop-title">Hamster Skins</h2>
+            <span id="shopTotalSeeds" class="shop-total-seeds">TOTAL SEEDS: 0</span>
+        </div>
+        <div id="shopGrid" class="shop-grid">
+            <!-- Skin cards will be generated by JS -->
+        </div>
+        <button class="game-button" onclick="closeShop()">Close</button>
+    </div>
+
+</div>
+
+<script type="module">
+    
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- GLOBAL FIREBASE & SAVE DATA ---
+    let db, auth, userId;
+    let saveData = {
+        totalSeeds: 0,
+        equippedSkin: 'default',
+        unlockedSkins: ['default']
+    };
+    const SKINS = {
+        'default': { name: "Default Hamster", price: 0, color: '#A67B5B' },
+        'golden': { name: "Golden Hamster", price: 50, color: '#FFD700' },
+        'shadow': { name: "Shadow Hamster", price: 100, color: '#424242' }
+    };
+
+    // --- Get all game elements ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreDisplay = document.getElementById('sessionScoreDisplay');
+    const healthDisplay = document.getElementById('healthDisplay');
+    const startButton = document.getElementById('startButton');
+    const resetButton = document.getElementById('resetButton');
+    const messageBox = document.getElementById('messageBox');
+    const messageTitle = document.getElementById('messageTitle');
+    const messageText = document.getElementById('messageText');
+    const closeMessageButton = document.getElementById('closeMessageButton');
+    const questionBox = document.getElementById('questionBox');
+    const questionText = document.getElementById('questionText');
+    const answerButtonsContainer = document.getElementById('answerButtons');
+    const totalSeedsDisplay = document.getElementById('totalSeedsDisplay');
+    const shopBox = document.getElementById('shopBox');
+    const shopGrid = document.getElementById('shopGrid');
+    const shopTotalSeeds = document.getElementById('shopTotalSeeds');
+
+    // --- Game Constants ---
+    const BASE_SPEED = 15; // Z-speed
+    const MAX_DEFEATS = 3;
+    const HORIZON_Y = 150; // Vanishing point Y
+    const CAMERA_Z = 0;
+    const SPAWN_Z = 2000;
+    
+    // --- Game State ---
+    let gameState = 'ready'; 
+    let pausedFrom = 'running'; 
+    let score = 0; 
+    let defeats = 0;
+    let frameCount = 0;
+    let gameLoopId;
+    let elements = []; 
+    let scenery = []; // Trees
+    let generationCooldown = 0; 
+    let currentQuestion = null; 
+    let currentGameSpeed = BASE_SPEED; 
+    
+    // NEW: Variables for floating feedback text
+    let feedbackText = "";
+    let feedbackColor = "white";
+    let feedbackTimer = 0;
+
+    // --- Audio ---
+    const jumpSynth = new Tone.MembraneSynth().toDestination();
+    const collectSynth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 }
+    }).toDestination();
+    const swingSynth = new Tone.Synth({
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+    }).toDestination();
+    const wrongSynth = new Tone.FMSynth({
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 },
+        harmonicity: 3,
+        modulationIndex: 10
+    }).toDestination();
+    
+    // --- Question Bank ---
+    const questionBank = [
+        {
+            question: "What is the process where plants release water vapor from their leaves?",
+            options: ["Photosynthesis", "Transpiration", "Respiration", "Evaporation"],
+            correctAnswer: "Transpiration"
+        },
+        {
+            question: "What do you call an animal that only eats plants?",
+            options: ["Carnivore", "Omnivore", "Herbivore", "Decomposer"],
+            correctAnswer: "Herbivore"
+        },
+        {
+            question: "What is the main gas that plants absorb from the atmosphere?",
+            options: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Methane"],
+            correctAnswer: "Carbon Dioxide"
+        },
+        {
+            question: "What does 'biodegradable' mean?",
+            options: ["It's waterproof", "It's recyclable", "It's very strong", "It breaks down naturally"],
+            correctAnswer: "It breaks down naturally"
+        }
+    ];
+
+    function showError(text) {
+        messageTitle.textContent = "Error";
+        messageText.textContent = text;
+        messageBox.style.display = 'block';
+    }
+
+    // --- FIREBASE SETUP ---
+    async function setupFirebase() {
+        try {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+            if (!firebaseConfig.apiKey) {
+                console.error("Firebase config is missing. Game will not save.");
+                showError("Could not connect to save server. Progress will not be saved.");
+                return;
+            }
+
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            setLogLevel('Debug');
+
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+                await signInAnonymously(auth);
+            }
+            
+            userId = auth.currentUser.uid;
+            await loadSaveData();
+
+        } catch (error) {
+            console.error("Firebase Init Error:", error);
+            showError("Could not load save data. Playing as guest.");
+        }
+    }
+
+    function getSaveDocPath() {
+         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+         return `artifacts/${appId}/users/${userId}/ecoRunnerSave/data`; 
+    }
+
+    async function loadSaveData() {
+        if (!db || !userId) return;
+        
+        const docRef = doc(db, getSaveDocPath());
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            saveData = docSnap.data();
+            if (!saveData.unlockedSkins.includes('default')) {
+                saveData.unlockedSkins.push('default');
+            }
+        } else {
+            await saveSaveData();
+        }
+        updateUITotals();
+        updateHearts(); // Update UI after load
+    }
+
+    // Helper to update hearts
+    function updateHearts() {
+        const lives = Math.max(0, MAX_DEFEATS - defeats);
+        let heartString = "";
+        for (let i = 0; i < MAX_DEFEATS; i++) {
+            if (i < lives) {
+                heartString += "❤️ ";
+            } else {
+                heartString += "🖤 ";
+            }
+        }
+        healthDisplay.textContent = heartString;
+    }
+
+    async function saveSaveData() {
+        if (!db || !userId) return;
+        try {
+            const docRef = doc(db, getSaveDocPath());
+            await setDoc(docRef, saveData);
+        } catch (error) {
+            console.error("Error saving data: ", error);
+        }
+    }
+
+    // --- Pseudo-3D Logic ---
+    function project(x, y, z) {
+        // Simple perspective projection
+        // Scale factor depends on Z (depth)
+        // Ensure z is at least 1 to avoid division by zero
+        const scale = 300 / (Math.max(1, z)); 
+        const screenX = canvas.width / 2 + x * scale;
+        const screenY = HORIZON_Y + y * scale; // Horizon offset
+        return { x: screenX, y: screenY, scale: scale };
+    }
+
+    // --- CLASSES MOVED TO TOP FOR SCOPE SAFETY ---
+
+    /**
+     * Scenery (Trees) in Pseudo-3D space.
+     */
+    class Scenery {
+        constructor(z, side) {
+            // Side: -1 for left, 1 for right
+            this.x = side * (350 + Math.random() * 200); 
+            this.y = 100; // Ground
+            this.z = z;
+            this.width = 60 + Math.random() * 40;
+            this.height = 150 + Math.random() * 100;
+        }
+        
+        update() {
+            this.z -= currentGameSpeed;
+        }
+        
+        draw() {
+            const p = project(this.x, this.y, this.z);
+            const w = this.width * p.scale;
+            const h = this.height * p.scale;
+            
+            // Trunk
+            ctx.fillStyle = '#5D4037';
+            ctx.fillRect(p.x - w/4, p.y - h/3, w/2, h/3);
+            
+            // Leaves (Triangle)
+            ctx.fillStyle = '#1B5E20';
+            ctx.beginPath();
+            ctx.moveTo(p.x - w, p.y - h/3);
+            ctx.lineTo(p.x + w, p.y - h/3);
+            ctx.lineTo(p.x, p.y - h);
+            ctx.fill();
+        }
+    }
+
+    /**
+     * Represents a game element in Pseudo-3D space.
+     */
+    class GameElement {
+        constructor(z, type) { 
+            this.x = (Math.random() * 500) - 250; // Random X range
+            this.y = 100; // Ground defaults to 100
+            this.z = z;
+            this.type = type;
+            this.width = 60; // 3D width
+            this.height = 60;
+            this.depth = 60; // Default depth (Z-length)
+            this.collected = false;
+
+            if (type === 'obstacle') {
+                if (Math.random() < 0.5) { // Ground block
+                    this.subType = 'barrel';
+                    this.color = '#B71C1C';
+                    this.y = 100; // On Ground
+                } else { // Flying drone
+                    this.subType = 'drone';
+                    this.y = 40; // High in air (Lower number = Higher up)
+                    this.color = '#757575';
+                    this.height = 30;
+                }
+            } else if (type === 'collectible') {
+                this.color = '#FFCC00';
+                this.width = 30;
+                this.height = 30;
+                this.y = 70; // Floating slightly above ground
+            } else if (type === 'water') {
+                // Wide River
+                this.x = 0;
+                this.width = 2000; // Infinite width
+                this.height = 10; // Flat
+                this.depth = 400; // Long river!
+                this.color = '#0077BE';
+                this.y = 100;
+            } else if (type === 'rock') {
+                this.color = '#757575'; // Grey
+                this.width = 70;
+                this.height = 15; 
+                this.depth = 70;
+                this.y = 90; // Slightly above ground (100) so you step UP
+            } else if (type === 'log') {
+                // Hollow Log
+                this.width = 80;
+                this.height = 50;
+                this.y = 100;
+                this.color = '#5D4037';
+            }
+        }
+
+        update() {
+            this.z -= currentGameSpeed; 
+        }
+
+        draw() {
+            // For water/long objects, we draw from front to back
+            // Center is z. Front is z-depth/2. Back is z+depth/2.
+            const zFront = this.z - this.depth / 2;
+            const zBack = this.z + this.depth / 2;
+            
+            // Only draw if within reasonable Z range
+            if (zFront < 10 && this.type !== 'vine') return; 
+
+            const p = project(this.x, this.y, this.z); 
+            
+            if (this.type === 'collectible') {
+                const w = this.width * p.scale;
+                const h = this.height * p.scale;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y - h/2, w/2, 0, Math.PI*2);
+                ctx.fill();
+            } else if (this.type === 'water') {
+                const pF = project(this.x, this.y, zFront);
+                const pB = project(this.x, this.y, zBack);
+                
+                ctx.fillStyle = this.color;
+                // Draw a trapezoid/rect covering the Z range
+                ctx.fillRect(0, pB.y, canvas.width, pF.y - pB.y);
+                
+                // Add "waves"
+                ctx.strokeStyle = '#4FC3F7';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, pB.y + 5);
+                ctx.lineTo(canvas.width, pB.y + 5);
+                ctx.stroke();
+                
+            } else if (this.type === 'rock') {
+                const w = this.width * p.scale;
+                const h = this.height * p.scale;
+                
+                ctx.fillStyle = '#616161'; // Dark Grey
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y, w/2, h/2, 0, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Top highlight
+                ctx.fillStyle = '#9E9E9E'; 
+                ctx.beginPath();
+                ctx.ellipse(p.x, p.y - h/4, w/2.5, h/3, 0, 0, Math.PI*2);
+                ctx.fill();
+
+            } else if (this.type === 'log') {
+                const w = this.width * p.scale;
+                const h = this.height * p.scale;
+                // Draw outer wood
+                ctx.fillStyle = '#5D4037'; // Dark Wood
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, w/2 + 10 * p.scale, Math.PI, 0); 
+                ctx.fill();
+                // Draw inner hole
+                ctx.fillStyle = '#261612'; 
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, w/2 - 5 * p.scale, Math.PI, 0);
+                ctx.fill();
+                // Texture
+                ctx.strokeStyle = '#3E2723';
+                ctx.lineWidth = 2 * p.scale;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, w/2 + 5 * p.scale, Math.PI, 0);
+                ctx.stroke();
+            } else {
+                // Obstacle
+                const w = this.width * p.scale;
+                const h = this.height * p.scale;
+                ctx.fillStyle = this.color;
+                ctx.fillRect(p.x - w/2, p.y - h, w, h);
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(p.x + w/2, p.y - h, w*0.2, h);
+            }
+        }
+    }
+
+    /**
+     * Represents the player character.
+     */
+    const Player = {
+        x: 0, 
+        y: 100, 
+        z: 100, // Player is fixed at Z=100
+        
+        vy: 0, 
+        jumpCount: 0, 
+        maxJumps: 2,
+        isRolling: false,
+        rollRotation: 0, 
+        
+        targetX: 0, 
+
+        reset() {
+            this.x = 0;
+            this.targetX = 0;
+            this.y = 100;
+            this.vy = 0;
+            this.jumpCount = 0;
+            this.isRolling = false;
+            this.rollRotation = 0;
+        },
+
+        update() {
+            if (gameState === 'gameover' || gameState === 'paused') return;
+
+            // Movement smoothing
+            this.x += (this.targetX - this.x) * 0.2;
+
+            // Rolling Animation
+            if (this.isRolling) {
+                this.rollRotation += 0.2; 
+            } else {
+                this.rollRotation = 0;
+            }
+
+            // Gravity (Positive pulls DOWN to 100)
+            this.vy += 1.5; 
+            this.y += this.vy;
+
+            // --- PLATFORM / GROUND LOGIC ---
+            let groundLevel = 100;
+            let onRock = false;
+
+            elements.forEach(el => {
+                if (el.type === 'rock') {
+                    if (el.z - el.depth/2 < 120 && el.z + el.depth/2 > 80) {
+                        if (Math.abs(Player.x - el.x) < 50) {
+                            groundLevel = el.y; // Should be around 90
+                            onRock = true;
+                        }
+                    }
+                }
+            });
+
+            // Physics Landing
+            // If y >= groundLevel, we are on or below ground/platform
+            if (this.y >= groundLevel) {
+                let overHazard = false;
+                
+                elements.forEach(el => {
+                    if (el.type === 'water') {
+                        if (el.z - el.depth/2 < 100 && el.z + el.depth/2 > 100) {
+                            overHazard = true;
+                        }
+                    }
+                });
+
+                if (overHazard && !onRock && groundLevel === 100) {
+                    // Fall (continue increasing Y)
+                } else {
+                    this.y = groundLevel;
+                    this.vy = 0;
+                    this.jumpCount = 0;
+                }
+            }
+            
+            // Check Death Plane (fell into water - Y gets huge)
+            if (this.y > 300) {
+                endGame("water");
+            }
+        },
+
+        draw() {
+            const p = project(this.x, this.y, this.z);
+            const size = 60 * p.scale; 
+            const skinColor = SKINS[saveData.equippedSkin].color;
+            
+            // 1. Shadow (Draw on ground Y=100)
+            if (this.y < 100) { // If in air (y < 100)
+                const groundP = project(this.x, 100, this.z);
+                const shadowScale = 1 - Math.min((100 - this.y) / 200, 0.5); 
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(groundP.x, groundP.y, (size/2) * shadowScale, (size/4) * shadowScale, 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // 2. Body
+            ctx.save();
+            ctx.translate(p.x, p.y - size/2); 
+            
+            if (this.isRolling) {
+                ctx.rotate(this.rollRotation);
+                ctx.fillStyle = skinColor;
+                ctx.fillRect(-size/2, -size/2, size, size); 
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(-size/4, -size/4, size/2, size/2);
+            } else {
+                ctx.translate(0, -size/2); 
+                ctx.fillStyle = skinColor;
+                ctx.fillRect(-size/2, 0, size, size);
+                ctx.fillStyle = '#FFC0CB'; 
+                ctx.beginPath();
+                ctx.arc(-size/3, 0, size/4, 0, Math.PI, true);
+                ctx.arc(size/3, 0, size/4, 0, Math.PI, true);
+                ctx.fill();
+            }
+            ctx.restore();
+        },
+
+        jump() {
+            if (gameState === 'gameover' || gameState === 'paused') return;
+            if (this.isRolling) return;
+            
+            if (this.jumpCount < this.maxJumps) {
+                this.vy = -22; // Negative moves UP
+                this.jumpCount++;
+                jumpSynth.triggerAttackRelease('C4', '8n');
+            }
+        },
+        
+        move(dir) {
+            this.targetX += dir * 80;
+            this.targetX = Math.max(-250, Math.min(250, this.targetX));
+        },
+
+        roll() {
+            if (gameState === 'gameover' || gameState === 'paused' || this.isRolling || this.y > 105) return;
+            this.isRolling = true;
+        },
+
+        stopRoll() {
+            if (!this.isRolling) return;
+            this.isRolling = false;
+        }
+    };
+
+    // --- GAME LOGIC FUNCTIONS ---
+
+    function generateElement() {
+        if (gameState !== 'running' || generationCooldown > 0) return;
+
+        const rand = Math.random();
+        
+        if (rand < 0.25) { // Big River + Rocks
+            let water = new GameElement(SPAWN_Z, 'water');
+            elements.push(water);
+            const numRocks = 3;
+            for(let i=0; i<numRocks; i++) {
+                let rockZ = SPAWN_Z - 100 + (i * 100);
+                let rock = new GameElement(rockZ, 'rock');
+                let lane = Math.floor(Math.random() * 3) - 1; 
+                rock.x = lane * 100;
+                elements.push(rock);
+            }
+            generationCooldown = 80; 
+            
+        } else if (rand < 0.55) { // Hollow Log
+            let log = new GameElement(SPAWN_Z, 'obstacle'); 
+            log.type = 'log'; 
+            log.width = 80; 
+            log.height = 50;
+            log.y = 100;
+            elements.push(log);
+            generationCooldown = 50;
+        } else if (rand < 0.8) { // Obstacle
+            elements.push(new GameElement(SPAWN_Z, 'obstacle'));
+            generationCooldown = 40;
+        } else { // Collectible
+            elements.push(new GameElement(SPAWN_Z, 'collectible'));
+            generationCooldown = 30;
+        }
+        
+        if (frameCount % 10 === 0) {
+            scenery.push(new Scenery(SPAWN_Z, -1)); 
+            scenery.push(new Scenery(SPAWN_Z, 1)); 
+        }
+    }
+
+    function gameLoop(timestamp) {
+        if (gameState === 'paused') {
+            gameLoopId = requestAnimationFrame(gameLoop);
+            return;
+        }
+
+        if (gameState === 'running') {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Sky
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, HORIZON_Y);
+            
+            // Draw Ground (Green)
+            ctx.fillStyle = '#2E7D32'; 
+            ctx.fillRect(0, HORIZON_Y, canvas.width, canvas.height - HORIZON_Y);
+            
+            // Grid lines
+            ctx.strokeStyle = '#43A047';
+            ctx.beginPath();
+            for(let i=-5; i<=5; i++) {
+                const p1 = project(i * 100, 100, 10);
+                const p2 = project(i * 100, 100, 2000);
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+            }
+            ctx.stroke();
+
+            Player.update();
+            
+            if (generationCooldown > 0) generationCooldown--;
+            generateElement();
+
+            // Render Sorting (Painter's Algorithm)
+            let renderList = [...elements, ...scenery];
+            renderList.sort((a, b) => b.z - a.z);
+            
+            const behindPlayer = renderList.filter(e => e.z > 100);
+            const inFrontOfPlayer = renderList.filter(e => e.z <= 100);
+
+            // Draw Background
+            behindPlayer.forEach(obj => {
+                if (obj.update) obj.update();
+                obj.draw();
+            });
+            
+            // Interaction Logic (Collision)
+            elements.forEach((element, index) => {
+                // General Hitbox Z check
+                if (element.z < 120 && element.z > 80) {
+                    
+                    if (element.type === 'collectible' && !element.collected) {
+                        if (Math.abs(Player.x - element.x) < 50 && Math.abs(Player.y - element.y) < 50) {
+                            element.collected = true;
+                            pauseGame('running');
+                            let q = questionBank[Math.floor(Math.random() * questionBank.length)];
+                            currentQuestion = q;
+                            showQuestion(q);
+                            elements.splice(index, 1);
+                        }
+                    } else if (element.type === 'log') {
+                        if (Math.abs(Player.x - element.x) < 60) {
+                            if (!Player.isRolling) {
+                                handleDefeat();
+                                elements.splice(index, 1);
+                            }
+                        }
+                    } else if (element.type === 'obstacle') {
+                        if (Math.abs(Player.x - element.x) < 50) {
+                            let hit = false;
+                            if (element.subType === 'drone') {
+                                // Drone is at Y=40. Player is rolling?
+                                // If not rolling, check head height?
+                                // Player ground is 100. Height 60. Top is 40.
+                                // If player jumps, Y < 100.
+                                if (!Player.isRolling && Player.y > 60) hit = true; 
+                            } else {
+                                // Ground obstacle. Hit if on ground.
+                                if (Player.y > 80) hit = true;
+                            }
+                            if (hit) {
+                                handleDefeat();
+                                elements.splice(index, 1);
+                            }
+                        }
+                    }
+                    // Water/Rock collision handled in Player.update via gravity
+                }
+            });
+
+            // Draw Player
+            Player.draw();
+            
+            // Draw Foreground
+            inFrontOfPlayer.forEach(obj => {
+                if (obj.update) obj.update();
+                obj.draw();
+            });
+
+            // Cleanup
+            elements = elements.filter(e => e.z > 0);
+            scenery = scenery.filter(e => e.z > 0);
+            
+            // Draw Feedback
+            if (feedbackTimer > 0) {
+                ctx.save();
+                ctx.fillStyle = feedbackColor;
+                ctx.font = "bold 30px Inter";
+                ctx.textAlign = "center";
+                ctx.shadowColor = "black";
+                ctx.shadowBlur = 4;
+                ctx.fillText(feedbackText, canvas.width / 2, 80);
+                ctx.restore();
+                feedbackTimer--;
+            }
+
+            scoreDisplay.textContent = `SCORE: ${score}`;
+            updateHearts(); // Ensure hearts are correct
+            
+            if (frameCount % 60 === 0 && frameCount > 0) {
+                score++;
+            }
+            
+            frameCount++;
+        }
+        
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+
+    function handleDefeat() {
+        if (gameState === 'gameover') return;
+        defeats++;
+        ctx.fillStyle = 'rgba(255,0,0,0.5)';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        
+        updateHearts(); // Update UI
+
+        if (defeats >= MAX_DEFEATS) {
+            endGame("defeat");
+        }
+    }
+    
+    function startGame() {
+        if (gameState === 'running') return;
+        window.focus();
+        gameState = 'running';
+        score = 0; 
+        defeats = 0;
+        frameCount = 0;
+        generationCooldown = 0;
+        currentGameSpeed = BASE_SPEED; 
+        elements = [];
+        scenery = [];
+        Player.reset();
+        updateUITotals();
+        updateHearts();
+        startButton.disabled = true;
+        resetButton.disabled = false;
+        hideMessage();
+        hideQuestion(); 
+        cancelAnimationFrame(gameLoopId);
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+
+    async function endGame(reason = "defeat") { 
+        if (gameState === 'gameover') return; 
+        gameState = 'gameover';
+        startButton.disabled = false;
+        resetButton.disabled = false;
+        let title = "Game Over!";
+        let message = `You collected ${score} Seed Packs!`;
+        if (score > 0) {
+            saveData.totalSeeds += score; 
+            await saveSaveData(); 
+            updateUITotals();
+        }
+        if (reason === "water") {
+            message += " You fell in the pit/river!";
+            defeats = MAX_DEFEATS; // Force empty hearts visual
+            updateHearts();
+        } else if (defeats >= MAX_DEFEATS) {
+            message += " Too many collisions!";
+        }
+        showMessage(title, `${message} Click 'Reset Game' or 'Continue' to try again!`);
+    }
+
+    function showMessage(title, text) {
+        messageTitle.textContent = title;
+        messageText.textContent = text;
+        messageBox.style.display = 'block';
+    }
+    function hideMessage() {
+        messageBox.style.display = 'none';
+    }
+
+    function pauseGame(originalState) {
+        pausedFrom = originalState;
+        gameState = 'paused';
+    }
+
+    function resumeGame() {
+        if (gameState !== 'paused') return;
+        gameState = pausedFrom;
+    }
+
+    function showQuestion(q) {
+        questionText.textContent = q.question;
+        answerButtonsContainer.innerHTML = ''; 
+        q.options.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'answer-button';
+            button.textContent = option;
+            button.onclick = () => handleAnswer(option);
+            answerButtonsContainer.appendChild(button);
+        });
+        questionBox.style.display = 'block';
+    }
+
+    function hideQuestion() {
+        questionBox.style.display = 'none';
+    }
+
+    function handleAnswer(selectedOption) {
+        hideQuestion();
+        if (selectedOption === currentQuestion.correctAnswer) {
+            score++;
+            updateUITotals(); 
+            collectSynth.triggerAttackRelease('E5', '16n');
+            feedbackText = "Correct! +1 Seed";
+            feedbackColor = "#4CAF50"; 
+        } else {
+            wrongSynth.triggerAttackRelease('C2', '8n'); 
+            feedbackText = "Incorrect!";
+            feedbackColor = "#F44336"; 
+        }
+        feedbackTimer = 90; 
+        resumeGame();
+    }
+    
+    function updateUITotals() {
+        totalSeedsDisplay.textContent = `TOTAL SEEDS: ${saveData.totalSeeds}`; 
+        scoreDisplay.textContent = `SCORE: ${score}`;
+        shopTotalSeeds.textContent = `TOTAL SEEDS: ${saveData.totalSeeds}`; 
+    }
+
+    function openShop() {
+        if (gameState === 'running' || gameState === 'paused') return;
+        shopGrid.innerHTML = '';
+        for (const skinId in SKINS) {
+            const skin = SKINS[skinId];
+            const card = document.createElement('div');
+            card.className = 'skin-card';
+            const preview = document.createElement('div');
+            preview.className = 'skin-preview';
+            preview.style.backgroundColor = skin.color;
+            const name = document.createElement('div');
+            name.className = 'skin-card-name';
+            name.textContent = skin.name;
+            const button = document.createElement('button');
+            button.className = 'skin-button';
+            if (saveData.equippedSkin === skinId) { 
+                button.textContent = "Equipped";
+                button.classList.add('skin-equipped');
+                button.disabled = true;
+            } else if (saveData.unlockedSkins.includes(skinId)) { 
+                button.textContent = "Equip";
+                button.classList.add('skin-equip');
+                button.onclick = () => equipSkin(skinId);
+            } else {
+                button.textContent = `Buy (${skin.price})`;
+                button.classList.add('skin-buy');
+                button.onclick = () => buySkin(skinId);
+            }
+            card.appendChild(preview);
+            card.appendChild(name);
+            card.appendChild(button);
+            shopGrid.appendChild(card);
+        }
+        updateUITotals(); 
+        shopBox.style.display = 'block';
+    }
+    
+    function closeShop() {
+        shopBox.style.display = 'none';
+    }
+    
+    async function buySkin(skinId) {
+        const skin = SKINS[skinId];
+        if (saveData.totalSeeds >= skin.price) { 
+            saveData.totalSeeds -= skin.price; 
+            saveData.unlockedSkins.push(skinId); 
+            await saveSaveData(); 
+            openShop(); 
+        } else {
+            showMessage("Not Enough Seeds!", "Play the game to collect more seeds.");
+        }
+    }
+    
+    async function equipSkin(skinId) {
+        saveData.equippedSkin = skinId; 
+        await saveSaveData(); 
+        openShop(); 
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (gameState === 'ready' && e.code === 'Space') {
+            startGame();
+            e.preventDefault();
+            return;
+        }
+        if (gameState !== 'running') return;
+        if (e.code === 'Space') {
+            Player.jump();
+            e.preventDefault(); 
+        }
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+            Player.roll();
+        }
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            Player.move(-1);
+        }
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            Player.move(1);
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+            Player.stopRoll();
+        }
+    });
+
+    canvas.addEventListener('mousedown', handleInput);
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault(); 
+        handleInput(e.touches[0]);
+    });
+
+    function handleInput(e) {
+        if (gameState !== 'running') return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const width = rect.width;
+        if (x < width * 0.3) Player.move(-1);
+        else if (x > width * 0.7) Player.move(1);
+        else Player.jump();
+    }
+
+    startButton.addEventListener('click', () => {
+        startGame();
+    });
+
+    resetButton.addEventListener('click', () => {
+        startGame();
+    });
+
+    closeMessageButton.addEventListener('click', () => {
+        if (closeMessageButton.disabled) return;
+        hideMessage();
+        if (gameState === 'paused') {
+            resumeGame();
+        }
+    });
+
+    window.onload = async function() { 
+        await setupFirebase(); 
+        ctx.fillStyle = '#87CEEB';
+        ctx.fillRect(0, 0, canvas.width, HORIZON_Y);
+        ctx.fillStyle = '#2E7D32';
+        ctx.fillRect(0, HORIZON_Y, canvas.width, canvas.height - HORIZON_Y);
+        showMessage(
+            "Welcome, Eco Runner!",
+            "3rd Person Mode! Use LEFT/RIGHT or A/D to move, SPACE to jump over pits, SHIFT to roll under logs."
+        );
+    };
+
+    window.openShop = openShop;
+    window.closeShop = closeShop;
+    window.buySkin = buySkin;
+    window.equipSkin = equipSkin;
+
+</script>
 </body>
 </html>

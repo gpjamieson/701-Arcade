@@ -3,98 +3,1257 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Obby of Knowledge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Tone.js for game audio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #ff69b4; /* Hot Pink for main accents */
+            --secondary-color: #f59e0b; /* Amber-500 for highlights */
+            --success-color: #10b981; /* Emerald-500 (Goal/Correct) */
+            --failure-color: #ef4444; /* Red-500 (Obstacles/Incorrect) */
+        }
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
+            font-family: 'Inter', sans-serif; 
+            background-color: #fee2e2; /* Light Pink Background */
+        }
+        
+        .main-title-cursive {
+            font-family: 'Pacifico', cursive; 
         }
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
+        .game-button {
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .game-button:hover {
+            box-shadow: 0 8px 10px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+        .game-button:active {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(0);
+        }
+        .stage-segment {
+            transition: background-color 0.5s ease;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .stage-segment.completed {
+            background-color: var(--success-color);
+        }
+        #obby-canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
         }
 
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
+        /* High-contrast disabled style for the trivia submit button before selection */
+        .submit-btn-initial-disabled {
+            background-color: #d1d5db !important; /* Tailwind gray-300 */
+            color: #4b5563 !important; /* Tailwind gray-700 */
+            cursor: not-allowed;
+            box-shadow: none;
+            opacity: 1 !important; /* Override opacity-50 */
         }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
-        }
+        
+        /* Custom Hot Pink Classes */
+        .bg-hot-pink { background-color: var(--primary-color); }
+        .text-hot-pink-700 { color: #d03090; } /* Darker shade of hot pink for text/borders */
+        .border-hot-pink-700 { border-color: #d03090; } 
     </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="scanline"></div>
-
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
+    <!-- START SCREEN - Visible on Load -->
+    <div id="start-screen" class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 md:p-10 border-4 border-hot-pink-700 text-center">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-hot-pink-700 mb-4 main-title-cursive">
+            Welcome to the Obby of Knowledge!
+        </h1>
+        <p class="text-xl text-gray-600 mb-8">
+            Prove your skills in both agility and smarts to conquer the levels. Your progress will be saved!
         </p>
-
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+        
+        <!-- Name Input -->
+        <div class="mb-6">
+            <label for="player-name-input" class="block text-lg font-semibold text-gray-700 mb-2">Enter Your Awesome Name:</label>
+            <input type="text" id="player-name-input" placeholder="e.g., Captain Smarty" maxlength="15"
+                   class="w-full px-4 py-3 border-2 border-hot-pink-700 rounded-xl text-lg text-center focus:outline-none focus:border-hot-pink-700 shadow-inner">
         </div>
+        
+        <!-- PLAYER CUSTOMIZATION SECTION -->
+        <div class="mb-8 p-4 bg-yellow-50 rounded-xl border-2 border-yellow-300">
+            <h2 class="text-xl font-bold text-yellow-700 mb-4">Customize Your Game</h2>
+
+            <!-- Difficulty Mode Selection -->
+            <div class="mb-6">
+                <p class="block text-lg font-semibold text-gray-700 mb-2">Select Difficulty:</p>
+                <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <button id="mode-easy" data-mode="easy" onclick="selectDifficulty('easy')"
+                            class="game-button px-4 py-2 text-sm font-semibold rounded-lg bg-hot-pink text-white shadow-md border-2 border-hot-pink-700 transition duration-150">
+                        Easy
+                    </button>
+                    <button id="mode-medium" data-mode="medium" onclick="selectDifficulty('medium')"
+                            class="game-button px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 text-gray-700 border-2 border-gray-400 transition duration-150">
+                        Medium
+                    </button>
+                    <button id="mode-hard" data-mode="hard" onclick="selectDifficulty('hard')"
+                            class="game-button px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 text-gray-700 border-2 border-gray-400 transition duration-150">
+                        Hard
+                    </button>
+                </div>
+            </div>
+
+            <!-- Player Color Selection -->
+            <div class="mb-4">
+                <p class="block text-lg font-semibold text-gray-700 mb-2">Choose Player Color:</p>
+                <div class="flex justify-center space-x-4">
+                    <!-- Black (Default) -->
+                    <button data-color="#000000" onclick="selectColor(this, '#000000')" title="Black"
+                            class="w-8 h-8 rounded-full border-4 border-hot-pink-700 bg-black shadow-md transform scale-110"></button>
+                    <!-- Yellow -->
+                    <button data-color="#f59e0b" onclick="selectColor(this, '#f59e0b')" title="Yellow"
+                            class="w-8 h-8 rounded-full border-2 border-gray-400 bg-amber-500 shadow-md"></button>
+                    <!-- Mint Green -->
+                    <button data-color="#99f6e4" onclick="selectColor(this, '#99f6e4')" title="Mint Green"
+                            class="w-8 h-8 rounded-full border-2 border-gray-400 bg-teal-300 shadow-md"></button>
+                    <!-- Gray -->
+                    <button data-color="#9ca3af" onclick="selectColor(this, '#9ca3af')" title="Gray"
+                            class="w-8 h-8 rounded-full border-2 border-gray-400 bg-gray-400 shadow-md"></button>
+                </div>
+            </div>
+        </div>
+        <!-- END CUSTOMIZATION SECTION -->
+
+        <button id="start-game-btn"
+            class="game-button px-10 py-4 bg-hot-pink hover:opacity-90 text-white font-bold text-xl rounded-xl shadow-lg transition duration-150 ease-in-out"
+            onclick="startGame()">
+            Play Adventure!
+        </button>
     </div>
 
+    <!-- MAIN OBBY SCREEN - Hidden on Load, shown for Obby -->
+    <div id="obby-screen" class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 md:p-10 border-4 border-hot-pink-700 hidden">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-hot-pink-700 text-center mb-1 main-title-cursive">
+            Obby of Knowledge <span class="text-secondary-color">🏃‍♂️</span>
+        </h1>
+        
+        <!-- Player Greeting Display -->
+        <p id="player-greeting" class="text-center text-xl font-medium text-hot-pink-700 mb-4">Hello, Player!</p>
+
+        <p class="text-center text-gray-600 mb-8">
+            Complete the obstacle stage by reaching the green goal, then answer a **Science** trivia question correctly to advance!
+        </p>
+
+        <!-- Stats Panel -->
+        <div class="flex justify-between items-center bg-pink-100 p-4 rounded-xl mb-8 shadow-inner">
+            <div class="text-center">
+                <span class="block text-sm font-semibold text-hot-pink-700">Current Level</span>
+                <span id="level-display" class="block text-2xl font-bold text-hot-pink-700">1</span>
+            </div>
+            <div class="text-center">
+                <span class="block text-sm font-semibold text-hot-pink-700">Score</span>
+                <span id="score-display" class="block text-2xl font-bold text-hot-pink-700">0</span>
+            </div>
+            <div class="text-center">
+                <span class="block text-sm font-semibold text-hot-pink-700">Mode</span>
+                <span id="difficulty-display" class="block text-2xl font-bold text-hot-pink-700">Easy</span>
+            </div>
+        </div>
+
+        <!-- The actual Obby Stage -->
+        <div class="mb-8 p-4 bg-gray-50 rounded-xl shadow-lg">
+            <h2 class="text-xl font-bold text-gray-700 mb-4">Obstacle Course</h2>
+            
+            <!-- Canvas for the Obby game -->
+            <canvas id="obby-canvas" class="bg-white border-2 border-hot-pink-700 rounded-xl" width="600" height="200"></canvas>
+
+            <div id="instruction-message" class="flex justify-center mt-4 text-hot-pink-700 font-bold text-center mb-4">
+                Use **WASD** or **Arrow Keys** to move the player and START the stage!
+            </div>
+
+            <div class="flex justify-between space-x-2 my-4 h-6">
+                <!-- Visual representation of stages (up to 5 total) -->
+                <div id="segment-1" class="stage-segment flex-1 rounded-full bg-gray-300"></div>
+                <div id="segment-2" class="stage-segment flex-1 rounded-full bg-gray-300"></div>
+                <div id="segment-3" class="stage-segment flex-1 rounded-full bg-gray-300"></div>
+                <div id="segment-4" class="stage-segment flex-1 rounded-full bg-gray-300"></div>
+                <div id="segment-5" class="stage-segment flex-1 rounded-full bg-gray-300"></div>
+            </div>
+        </div>
+
+        <!-- Game Messages -->
+        <div id="message-box" class="min-h-12 text-center text-lg font-semibold mb-6"></div>
+    </div>
+
+
+    <!-- KNOWLEDGE CHECK SCREEN - Hidden on Load, shown for Trivia -->
+    <div id="trivia-screen" class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 md:p-10 border-4 border-secondary-color hidden">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-secondary-color text-center mb-1 main-title-cursive">
+            Knowledge Check <span class="text-hot-pink-700">🧠</span>
+        </h1>
+        <p class="text-center text-gray-600 mb-8">
+            One question stands between you and the next stage. Choose wisely!
+        </p>
+
+        <div class="bg-yellow-50 p-6 rounded-xl shadow-lg">
+            <h3 class="text-2xl font-bold text-secondary-color mb-4" id="question-level-title">Level ? - Knowledge Check!</h3>
+            <p id="trivia-question" class="text-lg text-gray-800 font-medium mb-6">Loading question...</p>
+            
+            <div id="options-container" class="space-y-3">
+                <!-- Options will be injected here -->
+            </div>
+            
+            <div id="feedback-message" class="mt-6 text-center text-xl font-extrabold min-h-6"></div>
+
+            <button id="submit-answer-btn"
+                class="game-button mt-4 w-full bg-hot-pink hover:opacity-90 text-white font-bold py-3 rounded-xl text-lg disabled:opacity-50"
+                onclick="submitAnswer()">
+                Select Answer Above
+            </button>
+            <button id="next-stage-btn"
+                class="game-button mt-4 w-full bg-hot-pink hover:opacity-90 text-white font-bold py-3 rounded-xl text-lg hidden"
+                onclick="continueToNextStage()">
+                Continue to Next Stage
+            </button>
+        </div>
+    </div>
+    <!-- END KNOWLEDGE CHECK SCREEN -->
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase and Game Variables
+        let db, auth;
+        let userId = 'anon-user';
+        let currentLevel = 1;
+        let currentScore = 0;
+        let playerName = 'Player'; 
+        let currentTriviaData = null;
+        let selectedAnswer = null;
+        let isAuthReady = false;
+        let difficulty = 'easy'; 
+        let playerColor = '#000000'; 
+
+
+        // --- OBBY GAME VARIABLES ---
+        const obbyCanvas = document.getElementById('obby-canvas');
+        const obbyCtx = obbyCanvas.getContext('2d');
+        
+        let player = {};
+        let obstacles = [];
+        let goal = {};
+        let keysPressed = {};
+        let gameRunning = false; 
+        let animationFrameId = null;
+
+        const PLAYER_SIZE = 15;
+        const PLAYER_SPEED = 8; 
+
+
+        // --- AUDIO VARIABLES ---
+        let backgroundMusicLoop = null;
+        let melodySynth = null;
+        let bassSynth = null;
+
+
+        // --- DOM ELEMENTS ---
+        const startScreen = document.getElementById('start-screen');
+        const obbyScreen = document.getElementById('obby-screen'); 
+        const triviaScreen = document.getElementById('trivia-screen'); 
+        const levelDisplay = document.getElementById('level-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const difficultyDisplay = document.getElementById('difficulty-display'); 
+        const messageBox = document.getElementById('message-box');
+        const triviaQuestionEl = document.getElementById('trivia-question');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const questionLevelTitleEl = document.getElementById('question-level-title');
+        const submitAnswerBtn = document.getElementById('submit-answer-btn');
+        const nextStageBtn = document.getElementById('next-stage-btn'); 
+        const playerNameInput = document.getElementById('player-name-input');
+        const playerGreetingEl = document.getElementById('player-greeting');
+        const instructionMessage = document.getElementById('instruction-message');
+
+
+        // --- FIREBASE CONFIGURATION & AUTHENTICATION (MANDATORY) ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        const FIREBASE_COLLECTION = `levels`; 
+
+        async function initializeFirebase() {
+            try {
+                if (firebaseConfig) {
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    userId = auth.currentUser?.uid || crypto.randomUUID();
+                    isAuthReady = true;
+                    console.log("Firebase initialized and user signed in:", userId);
+
+                    await loadGameState();
+                } else {
+                    console.warn("Firebase configuration missing. Running game without persistence.");
+                    isAuthReady = true;
+                }
+            } catch (error) {
+                console.error("Firebase Initialization Failed:", error);
+                isAuthReady = true;
+            }
+        }
+
+        function getUserDocRef() {
+            if (!db || !userId) return null;
+            return doc(db, `artifacts/${appId}/users/${userId}/${FIREBASE_COLLECTION}/game_state`);
+        }
+
+        async function loadGameState() {
+            if (!isAuthReady || !db) return;
+            const docRef = getUserDocRef();
+            if (!docRef) return;
+
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    currentLevel = data.level || 1;
+                    currentScore = data.score || 0;
+                    playerName = data.name || 'Player'; 
+                    difficulty = data.difficulty || 'easy'; 
+                    playerColor = data.playerColor || '#000000'; 
+                } 
+
+                if (playerNameInput) {
+                    playerNameInput.value = playerName !== 'Player' ? playerName : '';
+                }
+
+                applyLoadedSettings();
+
+                updateUI();
+                updateStageVisuals();
+            } catch (error) {
+                console.error("Error loading game state:", error);
+            }
+        }
+
+        async function saveGameState() {
+            if (!isAuthReady || !db) return;
+            const docRef = getUserDocRef();
+            if (!docRef) return;
+
+            const gameState = {
+                level: currentLevel,
+                score: currentScore,
+                name: playerName, 
+                difficulty: difficulty, 
+                playerColor: playerColor, 
+                lastUpdated: new Date().toISOString()
+            };
+            try {
+                await setDoc(docRef, gameState);
+            } catch (error) {
+                console.error("Error saving game state:", error);
+            }
+        }
+        // --- END FIREBASE CONFIGURATION ---
+
+
+        // --- AUDIO IMPLEMENTATION (TONE.JS) ---
+
+        function setupBackgroundMusic() {
+            bassSynth = new Tone.Synth({
+                oscillator: { type: "sawtooth" },
+                envelope: {
+                    attack: 0.01,
+                    decay: 0.2,
+                    sustain: 0.1,
+                    release: 0.5
+                }
+            }).toDestination();
+            
+            melodySynth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "triangle" },
+                envelope: {
+                    attack: 0.02,
+                    decay: 0.4,
+                    sustain: 0.6,
+                    release: 0.8
+                }
+            }).toDestination();
+
+            const bassNotes = ["C2", "F2", "G2", "C2"];
+            const melodyPhrase = [
+                { time: "0:0", note: "Eb4", duration: "8n", velocity: 0.6 },
+                { time: "0:1", note: "C4", duration: "8n", velocity: 0.6 },
+                { time: "0:2", note: "F4", duration: "4n", velocity: 0.7 },
+                { time: "0:3", note: "G4", duration: "4n", velocity: 0.7 },
+                { time: "1:0", note: "Bb3", duration: "8n", velocity: 0.6 },
+                { time: "1:1", note: "G3", duration: "8n", velocity: 0.6 },
+                { time: "1:2", note: "C4", duration: "2n", velocity: 0.8 }
+            ];
+
+            let index = 0;
+
+            backgroundMusicLoop = new Tone.Loop(time => {
+                const bassNote = bassNotes[index % bassNotes.length];
+                bassSynth.triggerAttackRelease(bassNote, "4n", time, 0.4); 
+
+                if (index % 4 === 0) { 
+                    melodyPhrase.forEach(event => {
+                         melodySynth.triggerAttackRelease(event.note, event.duration, time + event.time, event.velocity);
+                    });
+                }
+
+                index++;
+            }, "4n"); 
+
+            Tone.Transport.bpm.value = 130; 
+        }
+
+        function startBackgroundMusic() {
+            if (Tone.Transport.state !== 'started' && backgroundMusicLoop) {
+                Tone.start().then(() => {
+                    backgroundMusicLoop.start(0);
+                    Tone.Transport.start();
+                }).catch(err => console.error("Could not start audio context:", err));
+            }
+        }
+
+        // --- CUSTOMIZATION LOGIC ---
+
+        function applyLoadedSettings() {
+            const difficultyButton = document.getElementById(`mode-${difficulty}`);
+            if (difficultyButton) {
+                window.selectDifficulty(difficulty); 
+            }
+            
+            const colorButton = document.querySelector(`[data-color="${playerColor}"]`);
+            if (colorButton) {
+                window.selectColor(colorButton, playerColor); 
+            } else {
+                const defaultBlackButton = document.querySelector('[data-color="#000000"]');
+                if (defaultBlackButton) {
+                    window.selectColor(defaultBlackButton, '#000000');
+                }
+            }
+        }
+
+        window.selectDifficulty = function(mode) {
+            difficulty = mode;
+            const modes = ['easy', 'medium', 'hard'];
+            modes.forEach(m => {
+                const btn = document.getElementById(`mode-${m}`);
+                if (!btn) return;
+                if (m === mode) {
+                    // Use custom hot pink classes
+                    btn.classList.add('bg-hot-pink', 'text-white', 'border-hot-pink-700', 'transform', 'scale-110');
+                    btn.classList.remove('bg-gray-200', 'text-gray-700', 'border-gray-400', 'scale-100');
+                } else {
+                    btn.classList.remove('bg-hot-pink', 'text-white', 'border-hot-pink-700', 'transform', 'scale-110');
+                    btn.classList.add('bg-gray-200', 'text-gray-700', 'border-gray-400', 'scale-100');
+                }
+            });
+            showMessage(`Difficulty set to ${mode.charAt(0).toUpperCase() + mode.slice(1)}.`, false);
+            saveGameState();
+        }
+
+        window.selectColor = function(button, color) {
+            playerColor = color;
+            
+            document.querySelectorAll('[data-color]').forEach(btn => {
+                // Use custom hot pink border class
+                btn.classList.remove('border-hot-pink-700', 'transform', 'scale-110');
+                btn.classList.add('border-gray-400', 'scale-100');
+                btn.style.borderWidth = '2px';
+            });
+            
+            if (button) {
+                 // Use custom hot pink border class
+                 button.classList.add('border-hot-pink-700', 'transform', 'scale-110');
+                 button.style.borderWidth = '4px';
+            }
+           
+            if (player.color !== undefined) {
+                player.color = playerColor;
+                draw(); 
+            }
+            saveGameState();
+        }
+
+        // --- OBBY GAME LOGIC ---
+        
+        function resizeCanvas() {
+            // Get the width of the obby screen container minus padding
+            const containerWidth = obbyScreen.clientWidth - 50; 
+            const ratio = 3; 
+            
+            obbyCanvas.width = Math.min(containerWidth, 600); 
+            obbyCanvas.height = obbyCanvas.width / ratio;
+            
+            if (player.x !== undefined) {
+                player.y = obbyCanvas.height / 2 - PLAYER_SIZE / 2;
+                goal.x = obbyCanvas.width - 40;
+                goal.height = obbyCanvas.height;
+                
+                obstacles = generateObstacles(obbyCanvas.width, obbyCanvas.height, currentLevel);
+                
+                draw();
+            }
+        }
+
+
+        function setupObby() {
+            const cw = obbyCanvas.width;
+            const ch = obbyCanvas.height;
+
+            player = {
+                x: 20,
+                y: ch / 2 - PLAYER_SIZE / 2,
+                size: PLAYER_SIZE,
+                color: playerColor
+            };
+
+            goal = {
+                x: cw - 40,
+                y: 0,
+                width: 40,
+                height: ch,
+                color: 'var(--success-color)'
+            };
+
+            obstacles = generateObstacles(cw, ch, currentLevel);
+        }
+
+        function generateObstacles(cw, ch, level) {
+            let baseObs, maxObs, minX, maxX;
+
+            switch (difficulty) {
+                case 'medium':
+                    baseObs = 5;
+                    maxObs = 10;
+                    minX = 80;
+                    maxX = cw - 80;
+                    break;
+                case 'hard':
+                    baseObs = 8;
+                    maxObs = 15;
+                    minX = 50;
+                    maxX = cw - 50;
+                    break;
+                case 'easy':
+                default:
+                    baseObs = 1; 
+                    maxObs = 4;
+                    minX = 200; 
+                    maxX = cw - 200; 
+                    break;
+            }
+
+            const numRandomObs = Math.min(baseObs + Math.floor(level / 2), maxObs); 
+            
+            const obs = [];
+            const minY = 10;
+            const maxY = ch - 20;
+
+            for (let i = 0; i < numRandomObs; i++) {
+                obs.push({
+                    x: Math.random() * (maxX - minX) + minX,
+                    y: Math.random() * (maxY - minY) + minY,
+                    width: Math.random() * 15 + 15, 
+                    height: Math.random() * 10 + 5, 
+                    color: 'var(--failure-color)'
+                });
+            }
+            return obs;
+        }
+
+        function draw() {
+            obbyCtx.clearRect(0, 0, obbyCanvas.width, obbyCanvas.height);
+
+            obbyCtx.fillStyle = goal.color;
+            obbyCtx.fillRect(goal.x, goal.y, goal.width, goal.height);
+
+            obstacles.forEach(obs => {
+                obbyCtx.fillStyle = obs.color;
+                obbyCtx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            });
+
+            obbyCtx.fillStyle = player.color;
+            obbyCtx.fillRect(player.x, player.y, player.size, player.size);
+        }
+
+        function checkCollision(r1, r2) {
+            return r1.x < r2.x + r2.width &&
+                   r1.x + r1.size > r2.x &&
+                   r1.y < r2.y + r2.height &&
+                   r1.y + r1.size > r2.y;
+        }
+
+        function update() {
+            const cw = obbyCanvas.width;
+            const ch = obbyCanvas.height;
+
+            let moved = false;
+            if (keysPressed['arrowup'] || keysPressed['w']) { player.y -= PLAYER_SPEED; moved = true; }
+            if (keysPressed['arrowdown'] || keysPressed['s']) { player.y += PLAYER_SPEED; moved = true; }
+            if (keysPressed['arrowleft'] || keysPressed['a']) { player.x -= PLAYER_SPEED; moved = true; }
+            if (keysPressed['arrowright'] || keysPressed['d']) { player.x += PLAYER_SPEED; moved = true; }
+            
+            if (!gameRunning && moved) {
+                startObbyStage();
+            }
+
+            player.x = Math.max(0, Math.min(player.x, cw - player.size));
+            player.y = Math.max(0, Math.min(player.y, ch - player.size));
+
+            for (const obs of obstacles) {
+                if (checkCollision(player, obs)) {
+                    player.x = 20;
+                    player.y = ch / 2 - player.size / 2;
+                    showMessage("Ouch! Obstacle hit. Resetting to start...", true);
+                    return; 
+                }
+            }
+
+            if (checkCollision(player, goal)) {
+                finishObbyStage();
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) {
+                cancelAnimationFrame(animationFrameId);
+                return;
+            }
+            update();
+            draw();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function startObbyStage() {
+            if (gameRunning) return;
+
+            gameRunning = true;
+            instructionMessage.textContent = "Stage In Progress (Use WASD/Arrows)";
+            instructionMessage.classList.remove('text-hot-pink-700', 'font-bold');
+            instructionMessage.classList.add('text-gray-500', 'font-medium');
+            showMessage(`Level ${currentLevel}: Navigate to the green zone without hitting red blocks!`, false);
+            gameLoop();
+        }
+
+        function finishObbyStage() {
+            gameRunning = false; 
+            showMessage("Stage Complete! Now for the Science Check...", false);
+            
+            // HIDE Obby screen and SHOW Trivia screen
+            obbyScreen.classList.add('hidden');
+            triviaScreen.classList.remove('hidden');
+
+            // Update instruction message
+            instructionMessage.textContent = "Loading Knowledge Check...";
+            instructionMessage.classList.remove('text-gray-500', 'font-medium');
+            instructionMessage.classList.add('text-hot-pink-700', 'font-bold');
+            
+            getLocalTriviaQuestion(); 
+        }
+
+        // --- END OBBY GAME LOGIC ---
+
+
+        // --- UI & STATE LOGIC ---
+
+        function updateUI() {
+            levelDisplay.textContent = currentLevel;
+            scoreDisplay.textContent = currentScore;
+            difficultyDisplay.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+            if (playerGreetingEl) {
+                playerGreetingEl.textContent = `Hello, ${playerName}!`;
+            }
+        }
+
+        function updateStageVisuals() {
+            const maxSegments = 5;
+            const segments = document.querySelectorAll('.stage-segment');
+
+            segments.forEach((segment, index) => {
+                const stageNumber = index + 1;
+                if (currentLevel > stageNumber) { 
+                    segment.classList.remove('bg-gray-300');
+                    segment.classList.add('completed');
+                } else {
+                    segment.classList.remove('completed');
+                    segment.classList.add('bg-gray-300');
+                }
+            });
+
+            if (currentLevel > maxSegments) {
+                 segments.forEach(segment => {
+                    segment.classList.remove('bg-gray-300');
+                    segment.classList.add('completed');
+                });
+            }
+        }
+
+        function showMessage(text, isError = false) {
+            messageBox.textContent = text;
+            // Use custom hot pink color for non-error messages
+            messageBox.style.color = isError ? 'var(--failure-color)' : 'var(--primary-color)';
+        }
+
+        window.startGame = function() {
+            const inputName = playerNameInput ? playerNameInput.value.trim() : '';
+
+            if (!inputName) {
+                playerNameInput.classList.add('border-red-500', 'ring-2', 'ring-red-500');
+                playerNameInput.focus();
+                return;
+            }
+
+            playerNameInput.classList.remove('border-red-500', 'ring-2', 'ring-red-500');
+            
+            playerName = inputName;
+            saveGameState(); 
+
+            // Hide the start screen and show the Obby screen
+            startScreen.classList.add('hidden');
+            obbyScreen.classList.remove('hidden');
+
+            resizeCanvas(); 
+
+            startBackgroundMusic(); 
+
+            updateUI();
+            resetStage(); 
+
+            window.addEventListener('resize', resizeCanvas); 
+        }
+
+        function displayTrivia(data) {
+            currentTriviaData = data;
+            selectedAnswer = null;
+
+            questionLevelTitleEl.textContent = `Level ${currentLevel} - Knowledge Check! (Topic: ${data.topic})`;
+            triviaQuestionEl.textContent = data.question;
+            optionsContainer.innerHTML = '';
+            feedbackMessageEl.textContent = '';
+            
+            submitAnswerBtn.classList.remove('hidden');
+            nextStageBtn.classList.add('hidden');
+            submitAnswerBtn.disabled = true;
+            submitAnswerBtn.textContent = "Select Answer Above";
+            // NEW: Apply high-contrast disabled style
+            submitAnswerBtn.classList.add('submit-btn-initial-disabled');
+
+            data.options.forEach((option, index) => {
+                const optionButton = document.createElement('button');
+                optionButton.type = 'button';
+                optionButton.textContent = option;
+                // Updated option button styling for better contrast
+                optionButton.className = 'w-full text-left game-button px-4 py-3 bg-gray-200 hover:bg-yellow-300 text-gray-800 font-medium rounded-lg transition duration-150 border-2 border-gray-400';
+                optionButton.onclick = () => selectOption(optionButton, option);
+                optionsContainer.appendChild(optionButton);
+            });
+        }
+
+        function selectOption(selectedButton, option) {
+            selectedAnswer = option;
+            submitAnswerBtn.disabled = false;
+            submitAnswerBtn.textContent = "Submit Answer";
+            
+            // Remove the initial disabled style when an option is selected
+            submitAnswerBtn.classList.remove('submit-btn-initial-disabled');
+            // Change: Use hot pink for the active submit button
+            submitAnswerBtn.classList.remove('bg-secondary-color', 'hover:bg-amber-600');
+            submitAnswerBtn.classList.add('bg-hot-pink', 'hover:opacity-90', 'text-white');
+
+
+            document.querySelectorAll('#options-container button').forEach(btn => {
+                btn.classList.remove('bg-secondary-color', 'border-secondary-color', 'text-white', 'border-4');
+                btn.classList.add('bg-gray-200', 'border-gray-400', 'text-gray-800', 'border-2');
+            });
+            // Use a thicker border/stronger color for the selected option (Amber)
+            selectedButton.classList.remove('bg-gray-200', 'text-gray-800', 'border-2', 'border-gray-400');
+            selectedButton.classList.add('bg-secondary-color', 'border-secondary-color', 'text-white', 'border-4');
+        }
+
+        window.submitAnswer = function() {
+            if (!selectedAnswer || !currentTriviaData) return;
+
+            submitAnswerBtn.disabled = true;
+            submitAnswerBtn.classList.add('hidden'); // Hide submit button
+
+            const isCorrect = selectedAnswer === currentTriviaData.answer;
+
+            document.querySelectorAll('#options-container button').forEach(btn => {
+                const isCurrent = btn.textContent === selectedAnswer;
+                const isCorrectOption = btn.textContent === currentTriviaData.answer;
+
+                btn.disabled = true; 
+                btn.classList.remove('bg-secondary-color', 'text-white', 'bg-gray-200', 'hover:bg-yellow-300', 'border-secondary-color', 'border-gray-400', 'border-4', 'bg-hot-pink', 'hover:opacity-90');
+                btn.classList.add('border-2');
+
+                if (isCorrectOption) {
+                    // Strong green for correct answer
+                    btn.classList.add('bg-success-color', 'text-white', 'border-success-color', 'font-extrabold', 'shadow-md');
+                } else if (isCurrent && !isCorrectOption) {
+                    // Strong red for incorrect selection
+                    btn.classList.add('bg-failure-color', 'text-white', 'border-failure-color', 'font-bold', 'shadow-md');
+                } else {
+                    // Dim gray for unselected wrong answers
+                    btn.classList.add('bg-gray-200', 'text-gray-500');
+                }
+            });
+
+
+            if (isCorrect) {
+                currentLevel++;
+                currentScore += 10;
+                feedbackMessageEl.textContent = "✅ Correct! Excellent work, Master of Knowledge!";
+                feedbackMessageEl.classList.remove('text-failure-color');
+                feedbackMessageEl.style.color = 'var(--success-color)';
+                
+                nextStageBtn.textContent = "Advance to Level " + currentLevel;
+            } else {
+                currentScore = Math.max(0, currentScore - 5); 
+                feedbackMessageEl.innerHTML = `❌ Incorrect. The correct answer was: <strong>${currentTriviaData.answer}</strong>. Better luck next time!`;
+                feedbackMessageEl.classList.remove('text-success-color');
+                feedbackMessageEl.style.color = 'var(--failure-color)';
+                
+                nextStageBtn.textContent = "Continue to Next Stage";
+            }
+            
+            // Show the next stage button after feedback
+            nextStageBtn.classList.remove('hidden');
+
+            updateUI();
+            saveGameState();
+        }
+        
+        // New function to handle screen transition after trivia check
+        window.continueToNextStage = function() {
+            triviaScreen.classList.add('hidden');
+            obbyScreen.classList.remove('hidden');
+            resetStage();
+        }
+
+        function resetStage() {
+            gameRunning = false; 
+            
+            instructionMessage.textContent = "Use WASD or Arrow Keys to move the player and START the stage!";
+            // Use custom hot pink color for instructions
+            instructionMessage.classList.remove('text-gray-500', 'font-medium');
+            instructionMessage.classList.add('text-hot-pink-700', 'font-bold');
+            
+            showMessage(`Ready for Level ${currentLevel}! Start moving to begin the course.`, false);
+            updateStageVisuals();
+            setupObby();
+            draw();
+        }
+        
+        // --- LOCAL TRIVIA DATABASE (50 Questions) ---
+        const localTriviaDatabase = [
+            {
+                question: "What is the process by which plants convert light energy into chemical energy?",
+                options: ["Respiration", "Photosynthesis", "Transpiration", "Fermentation"],
+                answer: "Photosynthesis",
+                topic: "Biology"
+            },
+            {
+                question: "Which element is essential for all life and is the basis of organic chemistry?",
+                options: ["Oxygen", "Nitrogen", "Carbon", "Hydrogen"],
+                answer: "Carbon",
+                topic: "Chemistry"
+            },
+            {
+                question: "What is the force that pulls objects toward the center of the Earth?",
+                options: ["Inertia", "Friction", "Gravity", "Momentum"],
+                answer: "Gravity",
+                topic: "Physics"
+            },
+            {
+                question: "What planet is known for its prominent system of rings?",
+                options: ["Jupiter", "Mars", "Saturn", "Uranus"],
+                answer: "Saturn",
+                topic: "Astronomy"
+            },
+            {
+                question: "What is the chemical symbol for water?",
+                options: ["O2", "H2O", "CO2", "NaCl"],
+                answer: "H2O",
+                topic: "Chemistry"
+            },
+            {
+                question: "What is the largest organ in the human body?",
+                options: ["Heart", "Brain", "Liver", "Skin"],
+                answer: "Skin",
+                topic: "Biology"
+            },
+            {
+                question: "In which state of matter are molecules most tightly packed?",
+                options: ["Liquid", "Gas", "Plasma", "Solid"],
+                answer: "Solid",
+                topic: "Physics"
+            },
+            {
+                question: "The Earth revolves around the Sun. What is this motion called?",
+                options: ["Rotation", "Revolution", "Orbit", "Tide"],
+                answer: "Revolution",
+                topic: "Astronomy"
+            },
+            {
+                question: "What is the primary gas that makes up the air we breathe?",
+                options: ["Oxygen", "Carbon Dioxide", "Argon", "Nitrogen"],
+                answer: "Nitrogen",
+                topic: "Chemistry"
+            },
+            {
+                question: "What is the main function of red blood cells?",
+                options: ["Fighting infection", "Clotting blood", "Carrying oxygen", "Digesting food"],
+                answer: "Carrying oxygen",
+                topic: "Biology"
+            },
+            {
+                question: "Which simple machine is a wheel with a groove around its edge for a rope or cable?",
+                options: ["Lever", "Inclined Plane", "Pulley", "Screw"],
+                answer: "Pulley",
+                topic: "Physics"
+            },
+            {
+                question: "What is the name of the galaxy that contains our solar system?",
+                options: ["Andromeda", "Triangulum", "Pinwheel", "Milky Way"],
+                answer: "Milky Way",
+                topic: "Astronomy"
+            },
+            {
+                question: "What type of energy is stored in a battery?",
+                options: ["Thermal", "Kinetic", "Chemical", "Mechanical"],
+                answer: "Chemical",
+                topic: "Chemistry"
+            },
+            {
+                question: "What part of the plant absorbs water and nutrients from the soil?",
+                options: ["Leaves", "Stem", "Roots", "Flower"],
+                answer: "Roots",
+                topic: "Biology"
+            },
+            {
+                question: "Which of the following materials is a good conductor of electricity?",
+                options: ["Wood", "Plastic", "Glass", "Copper"],
+                answer: "Copper",
+                topic: "Physics"
+            },
+            {
+                question: "How many bones are typically in the adult human body?",
+                options: ["106", "206", "306", "406"],
+                answer: "206",
+                topic: "Biology"
+            },
+            {
+                question: "What force resists motion when two surfaces rub together?",
+                options: ["Tension", "Thrust", "Friction", "Lift"],
+                answer: "Friction",
+                topic: "Physics"
+            },
+            {
+                question: "What is the process of water changing from a liquid to a gas called?",
+                options: ["Condensation", "Evaporation", "Precipitation", "Sublimation"],
+                answer: "Evaporation",
+                topic: "Chemistry"
+            },
+            {
+                question: "Which heavenly body is the closest star to Earth?",
+                options: ["The Moon", "Proxima Centauri", "Polaris", "The Sun"],
+                answer: "The Sun",
+                topic: "Astronomy"
+            },
+            {
+                question: "What term describes animals that only eat plants?",
+                options: ["Omnivores", "Carnivores", "Herbivores", "Insectivores"],
+                answer: "Herbivores",
+                topic: "Biology"
+            },
+            {
+                question: "The Richter scale measures the magnitude of what natural disaster?",
+                options: ["Tornadoes", "Floods", "Volcanic Eruptions", "Earthquakes"],
+                answer: "Earthquakes",
+                topic: "Earth Science"
+            },
+            {
+                question: "What is the smallest particle of an element that retains its properties?",
+                options: ["Molecule", "Proton", "Atom", "Neutron"],
+                answer: "Atom",
+                topic: "Chemistry"
+            },
+            {
+                question: "When a magnet pulls on an object, it demonstrates what kind of force?",
+                options: ["Torsional", "Magnetic", "Frictional", "Gravitational"],
+                answer: "Magnetic",
+                topic: "Physics"
+            },
+            {
+                question: "What type of rock is formed from the cooling and solidification of magma or lava?",
+                options: ["Sedimentary", "Metamorphic", "Igneous", "Volcanic"],
+                answer: "Igneous",
+                topic: "Earth Science"
+            },
+            {
+                question: "What part of a bird's egg provides food for the developing embryo?",
+                options: ["Shell", "Yolk", "Albumen", "Chalaya"],
+                answer: "Yolk",
+                topic: "Biology"
+            },
+            {
+                question: "What tool is used to measure temperature?",
+                options: ["Barometer", "Anemometer", "Thermometer", "Hygrometer"],
+                answer: "Thermometer",
+                topic: "Physics"
+            },
+            {
+                question: "Rust is a chemical reaction that occurs when iron reacts with oxygen and water. What is the chemical name for rust?",
+                options: ["Iron Chloride", "Iron Oxide", "Iron Sulfate", "Iron Nitrate"],
+                answer: "Iron Oxide",
+                topic: "Chemistry"
+            },
+            {
+                question: "What is the function of the human skeletal system?",
+                options: ["Digesting food", "Pumping blood", "Supporting the body", "Filtering toxins"],
+                answer: "Supporting the body",
+                topic: "Biology"
+            },
+            {
+                question: "Which of the following is not a primary color of light?",
+                options: ["Red", "Green", "Blue", "Yellow"],
+                answer: "Yellow",
+                topic: "Physics"
+            },
+            {
+                question: "What is the process called when rocks are broken down into smaller pieces by wind, water, or ice?",
+                options: ["Erosion", "Deposition", "Weathering", "Sublimation"],
+                answer: "Weathering",
+                topic: "Earth Science"
+            },
+            {
+                question: "What is the term for a substance that dissolves another substance?",
+                options: ["Solvent", "Solute", "Solution", "Mixture"],
+                answer: "Solvent",
+                topic: "Chemistry"
+            },
+            {
+                question: "The atmosphere of Earth is primarily contained within which layer?",
+                options: ["Mesosphere", "Stratosphere", "Exosphere", "Troposphere"],
+                answer: "Troposphere",
+                topic: "Earth Science"
+            },
+            {
+                question: "What does the 'LED' in LED lights stand for?",
+                options: ["Light Energy Driver", "Low Emission Diode", "Light Emitting Diode", "Laser Emission Device"],
+                answer: "Light Emitting Diode",
+                topic: "Physics"
+            },
+            {
+                question: "Where in the body is the genetic material (DNA) primarily stored?",
+                options: ["Cytoplasm", "Cell Wall", "Ribosome", "Nucleus"],
+                answer: "Nucleus",
+                topic: "Biology"
+            },
+            {
+                question: "Which metal is liquid at room temperature?",
+                options: ["Iron", "Gold", "Mercury", "Lead"],
+                answer: "Mercury",
+                topic: "Chemistry"
+            },
+            {
+                question: "What is the brightest star in the night sky?",
+                options: ["Alpha Centauri", "Polaris", "Sirius", "Vega"],
+                answer: "Sirius",
+                topic: "Astronomy"
+            },
+            {
+                question: "What is the unit of measure for electrical current?",
+                options: ["Volt", "Ohm", "Watt", "Ampere"],
+                answer: "Ampere",
+                topic: "Physics"
+            },
+            {
+                question: "What are the tiny holes on the surface of leaves through which gases are exchanged?",
+                options: ["Cuticles", "Xylems", "Stomata", "Chloroplasts"],
+                answer: "Stomata",
+                topic: "Biology"
+            },
+            {
+                question: "How long does it take for light from the Sun to reach Earth?",
+                options: ["1 second", "8 minutes", "3 hours", "1 day"],
+                answer: "8 minutes",
+                topic: "Astronomy"
+            },
+            {
+                question: "What is the lowest temperature possible, known as absolute zero?",
+                options: ["0 degrees Celsius", "0 degrees Fahrenheit", "0 Kelvin", "-273 degrees Celsius"],
+                answer: "0 Kelvin",
+                topic: "Physics"
+            },
+            {
+                question: "Which gas do humans exhale as a waste product of respiration?",
+                options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
+                answer: "Carbon Dioxide",
+                topic: "Biology"
+            },
+            {
+                question: "What is the main component of natural gas?",
+                options: ["Propane", "Butane", "Methane", "Ethane"],
+                answer: "Methane",
+                topic: "Chemistry"
+            },
+            {
+                question: "The outermost layer of the Earth is called the...",
+                options: ["Mantle", "Outer Core", "Crust", "Inner Core"],
+                answer: "Crust",
+                topic: "Earth Science"
+            },
+            {
+                question: "What happens to the pitch of sound as the frequency of the sound wave increases?",
+                options: ["It gets lower", "It gets higher", "It stays the same", "It disappears"],
+                answer: "It gets higher",
+                topic: "Physics"
+            },
+            {
+                question: "What is the primary role of chlorophyll in plants?",
+                options: ["To provide support", "To transport water", "To absorb sunlight", "To attract insects"],
+                answer: "To absorb sunlight",
+                topic: "Biology"
+            },
+            {
+                question: "If a substance has a pH of 7, it is considered to be...",
+                options: ["Acidic", "Basic (Alkaline)", "Neutral", "Corrosive"],
+                answer: "Neutral",
+                topic: "Chemistry"
+            },
+            {
+                question: "What are the large, natural bodies of ice that move slowly over land called?",
+                options: ["Icebergs", "Tundra", "Glaciers", "Ice Caps"],
+                answer: "Glaciers",
+                topic: "Earth Science"
+            },
+            {
+                question: "Which unit is used to measure energy?",
+                options: ["Newton", "Joule", "Pascal", "Hertz"],
+                answer: "Joule",
+                topic: "Physics"
+            },
+            {
+                question: "What process is responsible for the formation of clouds?",
+                options: ["Evaporation", "Condensation", "Sublimation", "Infiltration"],
+                answer: "Condensation",
+                topic: "Earth Science"
+            },
+            {
+                question: "What is the central part of an atom called?",
+                options: ["Electron Shell", "Nucleus", "Proton Cloud", "Orbit"],
+                answer: "Nucleus",
+                topic: "Chemistry"
+            }
+        ];
+
+
+        // --- LOCAL TRIVIA FUNCTION (Replaces API Call) ---
+        
+        function getLocalTriviaQuestion() {
+            // Clear previous content
+            triviaQuestionEl.textContent = "Loading question...";
+            optionsContainer.innerHTML = '';
+            feedbackMessageEl.textContent = 'Please wait...';
+            submitAnswerBtn.classList.add('hidden');
+            nextStageBtn.classList.add('hidden');
+
+            try {
+                // Check if the database is available and has questions
+                if (localTriviaDatabase.length === 0) {
+                    throw new Error("Local trivia database is empty.");
+                }
+
+                // Randomly select a question
+                const randomIndex = Math.floor(Math.random() * localTriviaDatabase.length);
+                const data = localTriviaDatabase[randomIndex];
+                
+                // Ensure the question has all required parts
+                if (data.question && data.options && data.options.length === 4 && data.answer) {
+                    displayTrivia(data);
+                } else {
+                    throw new Error("Selected trivia object is malformed.");
+                }
+
+            } catch (error) {
+                console.error("Failed to load local trivia:", error);
+                
+                // --- FALLBACK LOGIC ---
+                feedbackMessageEl.style.color = 'var(--failure-color)';
+                feedbackMessageEl.innerHTML = `❌ Error loading question: ${error.message}.<br>Skipping Knowledge Check to advance the game.`;
+
+                currentLevel++;
+                currentScore = Math.max(0, currentScore - 5);
+                updateUI();
+                saveGameState();
+                
+                nextStageBtn.textContent = "Continue to Next Stage";
+                nextStageBtn.classList.remove('hidden');
+                submitAnswerBtn.classList.add('hidden');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+
+        document.addEventListener('DOMContentLoaded', initializeFirebase);
+        
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            const movementKeys = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'];
+            const isMovementKey = movementKeys.includes(key);
+
+            if (isMovementKey) {
+                 e.preventDefault(); 
+            }
+
+            // Only allow movement control if the Obby screen is visible
+            if (obbyScreen.classList.contains('hidden')) {
+                return;
+            }
+
+            keysPressed[key] = true;
+
+            if (isMovementKey && !gameRunning) {
+                startObbyStage();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        window.addEventListener('resize', () => {
+             if (!obbyScreen.classList.contains('hidden')) {
+                resizeCanvas();
+             }
+        });
+
+        window.onload = function () {
+            setupBackgroundMusic(); 
+            setupObby(); 
+            draw(); 
+        }
+
+    </script>
 </body>
 </html>

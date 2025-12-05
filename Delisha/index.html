@@ -1,100 +1,402 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
-    <style>
-        body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
-        }
-
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
-        }
-    </style>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Mixture Sorting Challenge (Maze)</title>
+   <!-- Load Tailwind CSS -->
+   <script src="https://cdn.tailwindcss.com"></script>
+   <!-- Use Inter font family -->
+   <style>
+       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+       body {
+           font-family: 'Inter', sans-serif;
+           background-color: #f7fafc; /* Light gray background */
+       }
+       .path-tile {
+           width: 50px;
+           height: 50px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           border-radius: 8px;
+           border: 2px solid #9ca3af;
+           font-weight: bold;
+           transition: all 0.3s ease-in-out;
+       }
+       .path-start {
+           background-color: #d1fae5; /* Green 100 */
+       }
+       .path-end {
+           background-color: #fce7f3; /* Pink 100 */
+       }
+       .path-current {
+           background-color: #3b82f6; /* Blue 500 */
+           color: white;
+           transform: scale(1.1);
+           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+           border-color: #2563eb;
+       }
+       .sort-button {
+           padding: 12px 24px;
+           font-size: 1.125rem;
+           font-weight: 600;
+           border-radius: 9999px;
+           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+           transition: background-color 0.3s, transform 0.1s;
+       }
+       .sort-button:hover {
+           transform: translateY(-2px);
+       }
+       .sort-button:active {
+           transform: translateY(0);
+       }
+   </style>
 </head>
 <body>
 
-    <div class="scanline"></div>
+   <div id="app" class="min-h-screen p-4 md:p-8 flex flex-col items-center">
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+       <h1 class="text-4xl font-extrabold text-blue-800 mb-2 mt-4">🧪 Mixture Maze Sort</h1>
+       <p class="text-lg text-gray-600 mb-8">Sort correctly to move along the path!</p>
+      
+       <!-- Scoreboard and High Score -->
+       <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-8 mb-6 p-4 bg-white rounded-xl shadow-lg w-full max-w-2xl">
+           <div class="flex-1 text-center">
+               <p class="text-sm font-medium text-gray-500">Current Score</p>
+               <p id="current-score" class="text-3xl font-bold text-green-600">0</p>
+           </div>
+           <div class="flex-1 text-center">
+               <p class="text-sm font-medium text-gray-500">High Score</p>
+               <p id="high-score" class="text-3xl font-bold text-cyan-600">0</p>
+           </div>
+       </div>
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
-        </div>
-    </div>
+       <!-- Maze Path/Progress Bar -->
+       <div id="maze-path" class="flex justify-between items-center w-full max-w-xl my-8 p-4 bg-gray-200 rounded-full shadow-inner">
+           <!-- Path tiles will be injected here -->
+       </div>
 
+       <!-- Current Mixture Display -->
+       <div id="current-mixture-container" class="p-6 bg-white rounded-2xl shadow-xl w-full max-w-lg text-center mb-8 min-h-[120px] flex flex-col justify-center">
+           <p class="text-sm font-medium text-gray-500 mb-2">Current Mixture:</p>
+           <p id="current-mixture-text" class="text-2xl font-bold text-gray-800">Loading...</p>
+       </div>
+
+       <!-- Sorting Buttons -->
+       <div class="flex flex-col md:flex-row gap-4 w-full max-w-lg mb-8">
+           <button id="homogeneous-button" data-type="Homogeneous" class="sort-button flex-1 bg-blue-600 text-white hover:bg-blue-700">
+               💙 Homogeneous (Solution)
+           </button>
+           <button id="heterogeneous-button" data-type="Heterogeneous" class="sort-button flex-1 bg-cyan-600 text-white hover:bg-cyan-700">
+               🌀 Heterogeneous (Mechanical)
+           </button>
+       </div>
+      
+       <!-- Game Controls and Status -->
+       <div class="mt-4 flex flex-col items-center space-y-4">
+           <p id="feedback-message" class="text-xl font-semibold text-gray-700 min-h-[30px]">Click a button to start!</p>
+           <button id="reset-button" class="px-6 py-3 bg-gray-500 text-white font-semibold rounded-full shadow-lg hover:bg-gray-600 transition duration-300 transform hover:scale-105">
+               Start New Game
+           </button>
+       </div>
+      
+       <!-- User ID for Collaboration/Debugging -->
+       <p id="user-id-display" class="mt-6 text-xs text-gray-400">User ID: Loading...</p>
+       <p id="loading-message" class="mt-2 text-sm text-yellow-600">Initializing Firebase...</p>
+
+   </div>
+
+   <!-- Firebase Imports and Game Logic -->
+   <script type="module">
+       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+       import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+       import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+       import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+       // Set Firebase logging level to Debug
+       setLogLevel('Debug');
+
+       // --- GLOBAL SETUP ---
+       const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+       const appId = typeof __app_id !== 'undefined' ? __app_id : 'mixture-sort-game';
+       const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+       let db, auth;
+       let userId = null;
+       let isAuthReady = false;
+
+       // --- GAME STATE ---
+       let currentScore = 0;
+       let currentHighScore = 0;
+       let currentPosition = 0; // 0 to 5. Goal is 5.
+       const PATH_LENGTH = 5;
+      
+       const mixturesData = [
+           { name: "Sugar Water (Kool-Aid)", type: "Homogeneous", icon: "🍹" },
+           { name: "Milk", type: "Homogeneous", icon: "🥛" },
+           { name: "Vinegar", type: "Homogeneous", icon: "🍾" },
+           { name: "Black Coffee", type: "Homogeneous", icon: "☕" },
+           { name: "Tap Water (Filtered)", type: "Homogeneous", icon: "💧" },
+           { name: "Salad Dressing (Oil & Vinegar)", type: "Heterogeneous", icon: "🥗" },
+           { name: "Sand and Water", type: "Heterogeneous", icon: "🏖️" },
+           { name: "Orange Juice with Pulp", type: "Heterogeneous", icon: "🍊" },
+           { name: "A Bowl of Cereal", type: "Heterogeneous", icon: "🥣" },
+           { name: "Iced Tea with Ice Cubes", type: "Heterogeneous", icon: "🧊" },
+           { name: "Concrete", type: "Heterogeneous", icon: "🧱" },
+           { name: "Bronze Alloy", type: "Homogeneous", icon: "🏅" }, // Homogeneous solution (solid)
+           { name: "Muddy Water", type: "Heterogeneous", icon: "🚰" },
+       ];
+       let mixturesQueue = [];
+       let currentMixture = null;
+
+       // DOM Elements
+       const scoreElement = document.getElementById('current-score');
+       const highScoreElement = document.getElementById('high-score');
+       const mixtureTextElement = document.getElementById('current-mixture-text');
+       const feedbackMessage = document.getElementById('feedback-message');
+       const loadingMessage = document.getElementById('loading-message');
+       const mazePathContainer = document.getElementById('maze-path');
+
+       const SCORE_COLLECTION = 'mixture_sort_scores_maze';
+       const MAX_RETRIES = 5;
+
+       // --- UTILITY FUNCTIONS ---
+       function shuffleArray(array) {
+           for (let i = array.length - 1; i > 0; i--) {
+               const j = Math.floor(Math.random() * (i + 1));
+               [array[i], array[j]] = [array[j], array[i]];
+           }
+           return array;
+       }
+      
+       // --- FIREBASE / DATA FUNCTIONS (Unchanged) ---
+
+       async function fetchWithRetry(apiCall, retries = 0) {
+           try {
+               return await apiCall();
+           } catch (error) {
+               if (retries < MAX_RETRIES) {
+                   const delay = Math.pow(2, retries) * 1000;
+                   await new Promise(resolve => setTimeout(resolve, delay));
+                   return fetchWithRetry(apiCall, retries + 1);
+               }
+               throw error;
+           }
+       }
+
+       function getHighScoreDocRef() {
+           if (!db || !userId) return null;
+           const userPath = `/artifacts/${appId}/users/${userId}`;
+           return doc(db, userPath, SCORE_COLLECTION, 'high_score');
+       }
+
+       async function updateHighScore(newScore) {
+           if (newScore > currentHighScore && db && userId) {
+               currentHighScore = newScore;
+               highScoreElement.textContent = newScore;
+              
+               const docRef = getHighScoreDocRef();
+               if (!docRef) return;
+              
+               try {
+                   await fetchWithRetry(() => setDoc(docRef, { score: newScore, updatedAt: new Date().toISOString() }, { merge: true }));
+                   feedbackMessage.textContent = "🏆 New High Score Saved!";
+               } catch (error) {
+                   // Error is logged to console by setLogLevel('Debug');
+               }
+           }
+       }
+
+       function setupHighScoreListener() {
+           if (!db || !userId) return;
+
+           const docRef = getHighScoreDocRef();
+           if (!docRef) return;
+
+           onSnapshot(docRef, (docSnap) => {
+               if (docSnap.exists()) {
+                   const data = docSnap.data();
+                   const storedScore = data.score || 0;
+                   if (storedScore > currentHighScore) {
+                       currentHighScore = storedScore;
+                       highScoreElement.textContent = currentHighScore;
+                   }
+               } else {
+                   currentHighScore = 0;
+                   highScoreElement.textContent = 0;
+               }
+           }, (error) => {
+               highScoreElement.textContent = 'Error';
+           });
+       }
+
+       // --- GAME LOGIC ---
+
+       function updateScore(points) {
+           currentScore = Math.max(0, currentScore + points); // Score can't drop below zero
+           scoreElement.textContent = currentScore;
+       }
+
+       function renderPath() {
+           mazePathContainer.innerHTML = '';
+           for (let i = 1; i <= PATH_LENGTH; i++) {
+               const tile = document.createElement('div');
+               tile.className = 'path-tile';
+              
+               if (i === 1) {
+                   tile.classList.add('path-start');
+                   tile.textContent = 'START';
+               } else if (i === PATH_LENGTH) {
+                   tile.classList.add('path-end');
+                   tile.textContent = 'END';
+               } else {
+                   tile.textContent = i - 1;
+               }
+
+               if (i === currentPosition) {
+                   tile.classList.add('path-current');
+               } else if (i < currentPosition) {
+                   // Visited tiles can be slightly darker gray
+                   tile.style.backgroundColor = '#e5e7eb';
+               }
+              
+               // Add a line between tiles, except for the last one
+               mazePathContainer.appendChild(tile);
+               if (i < PATH_LENGTH) {
+                   const line = document.createElement('div');
+                   line.className = 'h-1 w-full bg-gray-400 mx-1';
+                   line.style.maxWidth = '20px'; // Connector size
+                   mazePathContainer.appendChild(line);
+               }
+           }
+       }
+      
+       function loadNextMixture() {
+           if (mixturesQueue.length === 0) {
+               // Refill the queue and shuffle if empty
+               mixturesQueue = shuffleArray([...mixturesData]);
+           }
+           currentMixture = mixturesQueue.pop();
+           mixtureTextElement.innerHTML = `${currentMixture.icon} ${currentMixture.name}`;
+           feedbackMessage.textContent = 'Choose the correct mixture type!';
+       }
+
+       function handleSort(e) {
+           if (!currentMixture) return;
+
+           const selectedType = e.currentTarget.getAttribute('data-type');
+           const isCorrect = (selectedType === currentMixture.type);
+          
+           if (isCorrect) {
+               updateScore(10);
+              
+               // Advance position if not already at the goal
+               if (currentPosition < PATH_LENGTH) {
+                   currentPosition++;
+                   feedbackMessage.innerHTML = `✅ **Correct!** (${currentMixture.name} is a ${currentMixture.type}). Advance! (+10 pts)`;
+               } else {
+                   feedbackMessage.innerHTML = `✅ **Correct!** (+10 pts)`;
+               }
+
+               if (currentPosition === PATH_LENGTH) {
+                   // Level Complete
+                   feedbackMessage.innerHTML = `🎉 **LEVEL CLEARED!** You reached the end of the maze! (+50 Bonus!)`;
+                   updateScore(50);
+                   updateHighScore(currentScore);
+                   setTimeout(resetGame, 3000);
+               } else {
+                   loadNextMixture();
+               }
+
+           } else {
+               // Penalty for incorrect answer
+               updateScore(-5);
+              
+               // Move back one step, but not past start (step 1)
+               if (currentPosition > 1) {
+                   currentPosition--;
+                   feedbackMessage.innerHTML = `❌ **Incorrect!** (${currentMixture.name} is a ${currentMixture.type}). Step back! (-5 pts)`;
+               } else {
+                   feedbackMessage.innerHTML = `❌ **Incorrect!** Try again. (-5 pts)`;
+               }
+
+               // Load a new mixture after the penalty
+               loadNextMixture();
+           }
+          
+           renderPath();
+       }
+      
+       function resetGame() {
+           currentScore = 0;
+           currentPosition = 1; // Start at the first tile (1)
+           scoreElement.textContent = 0;
+           mixturesQueue = shuffleArray([...mixturesData]);
+          
+           renderPath();
+           loadNextMixture();
+           document.getElementById('reset-button').textContent = "Shuffle & Restart";
+       }
+
+
+       // --- INITIALIZATION ---
+
+       function initializeGame() {
+           // Set up button listeners
+           document.getElementById('homogeneous-button').addEventListener('click', handleSort);
+           document.getElementById('heterogeneous-button').addEventListener('click', handleSort);
+          
+           document.getElementById('reset-button').addEventListener('click', resetGame);
+          
+           // Start the game for the first time
+           resetGame();
+           loadingMessage.textContent = "Game Ready! Click 'Start New Game' to begin.";
+           loadingMessage.classList.replace('text-yellow-600', 'text-green-600');
+       }
+
+       async function setupFirebase() {
+           try {
+               if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
+                   loadingMessage.textContent = "Firebase Config not found. Running game without persistence.";
+                   loadingMessage.classList.replace('text-yellow-600', 'text-red-600');
+                   initializeGame();
+                   return;
+               }
+              
+               const app = initializeApp(firebaseConfig);
+               db = getFirestore(app);
+               auth = getAuth(app);
+
+               if (initialAuthToken) {
+                   await signInWithCustomToken(auth, initialAuthToken);
+               } else {
+                   await signInAnonymously(auth);
+               }
+
+               onAuthStateChanged(auth, (user) => {
+                   if (user) {
+                       userId = user.uid;
+                       document.getElementById('user-id-display').textContent = `User ID: ${userId}`;
+                       isAuthReady = true;
+                      
+                       setupHighScoreListener();
+                       initializeGame();
+
+                   } else {
+                       loadingMessage.textContent = "Authentication failed. Game running offline.";
+                       initializeGame();
+                   }
+               });
+
+           } catch (error) {
+               loadingMessage.textContent = "Error during initialization. Game running offline.";
+               loadingMessage.classList.replace('text-yellow-600', 'text-red-600');
+               initializeGame();
+           }
+       }
+
+       window.onload = setupFirebase;
+   </script>
 </body>
 </html>

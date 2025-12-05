@@ -3,98 +3,976 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Astro-Collector: The Element Hunt</title>
+    <!-- Load Tailwind CSS for easy layout and styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Orbitron', sans-serif;
+            background-color: #12121c; /* Deep space background */
+            color: #e0f2f1; /* Light cyan text */
+            user-select: none; /* Prevent selection during play */
+        }
+        
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.2);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
         }
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
+        #gameCanvas {
+            border: 4px solid #00bcd4; /* Cyan border */
+            display: block;
             width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
+            touch-action: none; /* Improves touch responsiveness */
         }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        .hud {
+            background-color: #1f1f3a;
+            border-bottom: 2px solid #00bcd4;
+        }
+        
+        /* Custom Button Styling for Touch Controls */
+        .control-btn {
+            background-color: #00bcd4; /* Cyan */
+            color: #12121c;
+            border: 2px solid #e0f7fa;
+            font-weight: bold;
+            font-size: 1.25rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0, 188, 212, 0.4);
+            transition: transform 0.1s;
+        }
+        .control-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 4px rgba(0, 188, 212, 0.6);
+        }
+        
+        /* Modal Styling (Used for Start and Win screens only now) */
+        .game-modal {
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+        .buy-btn {
+            padding: 8px 16px;
+            background-color: #38bdf8; /* Sky Blue */
+            color: #0c0c2a;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+        .buy-btn:hover:not(:disabled) {
+            background-color: #0ea5e9; /* Darker Blue */
+        }
+        .buy-btn:disabled {
+            background-color: #4b5563; /* Gray */
+            cursor: not-allowed;
+        }
+        /* Restart button styling to show it's clickable */
+        .active-btn {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.7);
         }
     </style>
 </head>
-<body>
+<body class="p-2 md:p-8 flex items-center justify-center min-h-screen">
 
-    <div class="scanline"></div>
-
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
+    <div class="game-container">
         
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+        <!-- Game HUD -->
+        <div class="hud w-full p-4 flex justify-between items-center text-xl md:text-2xl">
+            <div>Score: <span id="scoreDisplay" class="text-green-400">0</span></div>
+            <button id="shopBtn" class="py-1 px-4 bg-yellow-500 text-gray-900 text-lg font-bold rounded-lg hover:bg-yellow-400 transition shadow-lg">
+                SHOP
+            </button>
+            <div>Goal: <span id="goalDisplay" class="text-purple-400">0</span></div>
+            <div>Time: <span id="timeDisplay" class="text-yellow-400">0</span>s</div> 
+        </div>
+        
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <!-- Game Controls Bar (Always visible, but restart button is only active when game is over) -->
+        <div id="gameControls" class="w-full bg-gray-800 p-4 flex justify-center items-center">
+            <!-- RESTART BUTTON: Hidden initially, becomes visible and active on game end -->
+            <button id="restartBtn" class="py-3 px-8 bg-green-500 text-white font-bold rounded-lg transition-all duration-300 opacity-0 pointer-events-none">
+                Restart Mission
+            </button>
+        </div>
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+        <!-- Touch Controls (Visible on mobile) -->
+        <div id="touchControls" class="w-full bg-gray-800 p-4 flex justify-center space-x-8 md:hidden border-t-2 border-gray-700">
+            <div class="flex flex-col items-center">
+                <button id="upBtn" class="control-btn mb-1">&#9650;</button>
+                <div class="flex space-x-1">
+                    <button id="leftBtn" class="control-btn">&#9664;</button>
+                    <button id="downBtn" class="control-btn">&#9660;</button>
+                    <button id="rightBtn" class="control-btn">&#9654;</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Game Over/Start Modal (Used for Start and Win screens) -->
+    <div id="gameOverModal" class="game-modal fixed inset-0 hidden items-center justify-center p-4">
+        <div class="bg-indigo-900 border-4 border-cyan-400 p-8 rounded-xl text-center shadow-2xl w-full max-w-sm">
+            <h2 class="text-4xl font-extrabold text-cyan-400 mb-4" id="modalTitle"></h2>
+            <p class="text-xl text-white mb-6" id="modalMessage"></p>
+            <button id="modalStartBtn" class="py-3 px-8 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition shadow-lg">
+                Begin Mission
+            </button>
         </div>
     </div>
 
+    <!-- Shop Modal -->
+    <div id="shopModal" class="game-modal fixed inset-0 hidden items-center justify-center p-4">
+        <div class="bg-gray-800 border-4 border-yellow-400 p-6 rounded-xl shadow-2xl w-full max-w-md">
+            <h2 class="text-3xl font-extrabold text-yellow-400 mb-4 text-center">ELEMENT SHOP</h2>
+            <p class="text-white text-center mb-6">Current Elements: <span id="shopScoreDisplay" class="font-bold text-green-400">0</span></p>
+
+            <div id="shopItemsContainer" class="space-y-4">
+                <!-- Items will be inserted here by JavaScript -->
+            </div>
+
+            <button id="closeShopBtn" class="mt-8 w-full py-3 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition shadow-lg">
+                Close Shop
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Game Setup ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const goalDisplay = document.getElementById('goalDisplay');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalStartBtn = document.getElementById('modalStartBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const shopBtn = document.getElementById('shopBtn');
+        const shopModal = document.getElementById('shopModal');
+        const closeShopBtn = document.getElementById('closeShopBtn');
+        const shopScoreDisplay = document.getElementById('shopScoreDisplay');
+        const shopItemsContainer = document.getElementById('shopItemsContainer');
+        
+        // Game Constants
+        const PLAYER_SIZE = 20;
+        const BASE_PLAYER_SPEED = 4;
+        const GAME_DURATION = 670n; // Set time limit to 670 seconds
+        const SCORE_GOAL = 1000000; 
+        
+        // Starfield constants
+        const NUM_STARS = 100;
+        let stars = []; 
+        
+        let gameActive = false;
+        let score = 0;
+        let timeLeft = GAME_DURATION; // Initialized as BigInt
+        let gameInterval;
+        let animationFrame;
+        let keys = {};
+        
+        // Jumpscare State: The visual noise/static effect after the flash
+        let isScareActive = false; 
+        // Persistent Scary Face State
+        let isScaryFaceActive = false;
+
+        // Player State
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            dx: 0,
+            dy: 0
+        };
+
+        // --- Shop & Power-up State ---
+        let playerSpeed = BASE_PLAYER_SPEED;
+        let currentCollectionRadiusMultiplier = 1;
+        let hasAblativeArmor = false;
+        let speedBoostTimer = 0;
+        let magnetFieldTimer = 0;
+
+        const SHOP_ITEMS = {
+            speedBoost: {
+                name: "Temp Speed Boost",
+                cost: 1000,
+                duration: 15, // seconds
+                description: "Significantly increases speed for 15s."
+            },
+            magnetField: {
+                name: "Magnet Field",
+                cost: 5000,
+                duration: 10, // seconds
+                description: "Doubles collection radius for 10s."
+            },
+            ablativeArmor: {
+                name: "Ablative Armor",
+                cost: 10000,
+                description: "Protects against one obstacle collision."
+            }
+        };
+
+        // --- Science Themed Data ---
+        const elements = [
+            { type: "Hydrogen", color: "white", symbol: "H" },
+            { type: "Oxygen", color: "red", symbol: "O" },
+            { type: "Carbon", color: "gray", symbol: "C" },
+            { type: "Gold", color: "yellow", symbol: "Au" },
+            { type: "Uranium", color: "green", symbol: "U" }
+        ];
+
+        // Obstacles (Space Junk)
+        const junkColors = ["#6b7280", "#4b5563"];
+        
+        // Entity Arrays
+        let collectibles = [];
+        let obstacles = [];
+        const MAX_COLLECTIBLES = 10;
+        const MAX_OBSTACLES = 5;
+        
+        // --- Drawing Functions ---
+        
+        /** Initializes or recalculates star positions based on canvas size. */
+        function initializeStars(force = false) {
+            if (stars.length === 0 || force) {
+                stars = [];
+                for (let i = 0; i < NUM_STARS; i++) {
+                    stars.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        radius: Math.random() * 1.5,
+                        opacity: Math.random() * 0.5 + 0.5
+                    });
+                }
+            }
+        }
+
+        /** Draws the starfield background and adds a flicker effect. */
+        function drawStars() {
+            ctx.fillStyle = 'white';
+            const now = Date.now();
+            stars.forEach(star => {
+                ctx.globalAlpha = star.opacity * (0.8 + Math.sin(now / 500 + star.x) * 0.2); 
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        /** Draws the player as a small probe/spaceship */
+        function drawPlayer() {
+            // Change color if Armor is active
+            ctx.fillStyle = hasAblativeArmor ? '#ff6600' : '#00bcd4'; // Orange shield color
+            
+            ctx.beginPath();
+            // Simple triangle shape (spaceship)
+            ctx.moveTo(player.x - PLAYER_SIZE / 2, player.y + PLAYER_SIZE / 2); // Bottom-left
+            ctx.lineTo(player.x + PLAYER_SIZE / 2, player.y + PLAYER_SIZE / 2); // Bottom-right
+            ctx.lineTo(player.x, player.y - PLAYER_SIZE); // Top tip
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw collection field if magnet is active
+            if (magnetFieldTimer > 0) {
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)'; // Yellow magnet field
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                // The size of the detection radius is PLAYER_SIZE + (average collectible radius) * multiplier
+                const magnetRadius = (PLAYER_SIZE + 13) * currentCollectionRadiusMultiplier; 
+                ctx.arc(player.x, player.y, magnetRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        /** Draws a collectible element */
+        function drawCollectible(item) {
+            ctx.fillStyle = item.color;
+            ctx.beginPath();
+            ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw element symbol
+            ctx.fillStyle = 'black';
+            ctx.font = `${item.radius * 0.8}px Orbitron`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(item.symbol, item.x, item.y);
+        }
+
+        /** Draws an obstacle (alien spaceship) */
+        function drawObstacle(item) {
+            const size = item.size;
+            const x = item.x;
+            const y = item.y;
+            const bodyColor = item.color; // Junk color for the main body
+            const cockpitColor = '#4caf50'; // Alien Green for the cockpit
+            const windowColor = '#e0f7fa'; // Bright light blue for the window
+
+            // 1. Draw Saucer Body (Ellipse)
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            // Scaling for the ellipse: width = size, height = size * 0.4
+            ctx.ellipse(x, y + size * 0.1, size / 2, size * 0.25, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Draw Cockpit/Dome (Arc)
+            ctx.fillStyle = cockpitColor;
+            ctx.beginPath();
+            // Draw a semi-circle on top of the body
+            ctx.arc(x, y - size * 0.1, size * 0.4, Math.PI, Math.PI * 2);
+            ctx.fill();
+            
+            // 3. Draw Cockpit Window (Inner Arc)
+            ctx.fillStyle = windowColor;
+            ctx.beginPath();
+            // A smaller semi-circle for the "window"
+            ctx.arc(x, y - size * 0.1, size * 0.3, Math.PI, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Draw Simple Alien Eye (Dot in the window)
+            ctx.fillStyle = '#f44336'; // Red eye
+            ctx.beginPath();
+            ctx.arc(x, y - size * 0.1, size * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 5. Draw Outline
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.ellipse(x, y + size * 0.1, size / 2, size * 0.25, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(x, y - size * 0.1, size * 0.4, Math.PI, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        /** Draws the static/visual noise effect */
+        function drawStatic() {
+            const gridSize = 10;
+            
+            for (let i = 0; i < canvas.width; i += gridSize) {
+                for (let j = 0; j < canvas.height; j += gridSize) {
+                    // Randomly color the blocks grey/black/white for a static look
+                    const intensity = Math.floor(Math.random() * 255);
+                    ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
+                    ctx.fillRect(i, j, gridSize, gridSize);
+                }
+            }
+
+            // Add a disturbing, glitchy red overlay
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = 'red';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1.0;
+        }
+
+        /** Draws the persistent, scary, primitive face graphic */
+        function drawScaryFace() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height); // Black background
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const size = canvas.height * 0.4;
+            
+            // Unsettling, high-contrast white eyes
+            ctx.fillStyle = 'white';
+            
+            // Left eye (rectangle) - highly stylized
+            ctx.fillRect(cx - size / 2, cy - size / 4, size / 4, size / 3);
+            // Right eye (rectangle)
+            ctx.fillRect(cx + size / 4, cy - size / 4, size / 4, size / 3);
+            
+            // Black pupils (small circles for extra creepiness)
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(cx - size / 3.5, cy + size / 10, size / 15, 0, Math.PI * 2);
+            ctx.arc(cx + size / 3.5, cy + size / 10, size / 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Large, distorted, toothy mouth
+            ctx.fillStyle = 'white';
+            ctx.fillRect(cx - size * 0.6, cy + size * 0.4, size * 1.2, size * 0.1);
+            
+            // Add score display directly to the canvas so it's visible.
+            ctx.fillStyle = 'red';
+            ctx.font = '24px Orbitron';
+            ctx.textAlign = 'center';
+            ctx.fillText(`SYSTEM FATAL ERROR: ${score.toLocaleString()} ELEMENTS LOST`, cx, cy + size * 0.8);
+            
+            // Add instruction hint
+            ctx.font = '16px Orbitron';
+            ctx.fillStyle = 'yellow';
+            ctx.fillText("Press 'Restart Mission' below", cx, cy + size * 0.95);
+
+        }
+
+
+        /** Draws all entities on the canvas */
+        function draw() {
+            // Priority 1: Persistent Scary Face
+            if (isScaryFaceActive) {
+                drawScaryFace(); 
+                return;
+            }
+
+            // Priority 2: Jumpscare Static
+            if (isScareActive) {
+                drawStatic(); 
+                return;
+            }
+
+            // Clear canvas and draw new background
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 1. Draw Deep Space Background (Dark Blue/Purple)
+            ctx.fillStyle = '#08081a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Draw Stars
+            drawStars();
+            
+            drawPlayer();
+            
+            collectibles.forEach(drawCollectible);
+            obstacles.forEach(drawObstacle);
+        }
+
+        // --- Game Logic ---
+
+        /** Creates a new collectible element at a random location */
+        function spawnCollectible() {
+            const element = elements[Math.floor(Math.random() * elements.length)];
+            const radius = Math.random() * 10 + 8; // Size between 8 and 18
+            collectibles.push({
+                x: Math.random() * (canvas.width - radius * 2) + radius,
+                y: Math.random() * (canvas.height - radius * 2) + radius,
+                radius: radius,
+                ...element
+            });
+        }
+
+        /** Creates a new obstacle (space junk) at a random location */
+        function spawnObstacle() {
+            const size = Math.random() * 20 + 15; // Size between 15 and 35
+            const color = junkColors[Math.floor(Math.random() * junkColors.length)];
+            obstacles.push({
+                x: Math.random() * (canvas.width - size * 2) + size,
+                y: Math.random() * (canvas.height - size * 2) + size,
+                size: size,
+                color: color,
+                dx: (Math.random() - 0.5) * 1.5, // Slow horizontal movement
+                dy: (Math.random() - 0.5) * 1.5  // Slow vertical movement
+            });
+        }
+        
+        /** Moves player based on key press */
+        function movePlayer() {
+            player.x += player.dx * playerSpeed; // Use dynamic speed
+            player.y += player.dy * playerSpeed;
+
+            // Keep player within bounds
+            player.x = Math.max(PLAYER_SIZE, Math.min(canvas.width - PLAYER_SIZE, player.x));
+            player.y = Math.max(PLAYER_SIZE, Math.min(canvas.height - PLAYER_SIZE, player.y));
+        }
+
+        /** Moves obstacles and keeps them in bounds */
+        function moveObstacles() {
+            obstacles.forEach(obs => {
+                obs.x += obs.dx;
+                obs.y += obs.dy;
+                
+                // Bounce off walls
+                if (obs.x < obs.size / 2 || obs.x > canvas.width - obs.size / 2) {
+                    obs.dx *= -1;
+                }
+                if (obs.y < obs.size / 2 || obs.y > canvas.height - obs.size / 2) {
+                    obs.dy *= -1;
+                }
+            });
+        }
+
+        /** Updates power-up and special effect timers */
+        function updateEffects(deltaTime) {
+            // Speed Boost Timer
+            if (speedBoostTimer > 0) {
+                speedBoostTimer -= deltaTime;
+                if (speedBoostTimer <= 0) {
+                    speedBoostTimer = 0;
+                    playerSpeed = BASE_PLAYER_SPEED; // Reset speed
+                }
+            }
+
+            // Magnet Field Timer
+            if (magnetFieldTimer > 0) {
+                magnetFieldTimer -= deltaTime;
+                if (magnetFieldTimer <= 0) {
+                    magnetFieldTimer = 0;
+                    currentCollectionRadiusMultiplier = 1; // Reset radius
+                }
+            }
+        }
+
+        /** Shows the Game Over modal with correct text (used only for Start and Win) */
+        function showGameStatusModal(win) {
+            
+            // Activate restart button
+            restartBtn.classList.add('active-btn');
+            
+            if (win) {
+                modalTitle.textContent = 'MISSION ACCOMPLISHED!';
+                modalTitle.classList.remove('text-cyan-400');
+                modalTitle.classList.add('text-lime-400');
+                modalMessage.textContent = `You successfully collected ${score.toLocaleString()} elements!`;
+            } else {
+                // If loss, we do NOT show this modal. The canvas handles the loss screen.
+                return;
+            }
+
+            // Show the modal for win/start
+            gameOverModal.classList.add('flex');
+            gameOverModal.classList.remove('hidden');
+        }
+
+        /** Triggers the jumpscare sequence (flash -> static -> scary face) */
+        function triggerJumpscareSequence() {
+            // Stop the game loop
+            gameActive = false;
+            cancelAnimationFrame(animationFrame);
+            
+            // Instantly activate the external restart button for responsiveness
+            restartBtn.classList.add('active-btn'); 
+
+            // 1. Immediate Flash (50ms)
+            ctx.fillStyle = 'rgba(255, 0, 0, 1.0)'; // Intense Red Flash
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            setTimeout(() => {
+                // 2. Activate Static Screen (150ms)
+                isScareActive = true; 
+                // Need one frame to draw the static immediately
+                draw();
+                
+                setTimeout(() => {
+                    // 3. Activate Persistent Scary Face
+                    isScareActive = false; // Turn off static
+                    isScaryFaceActive = true; 
+                    // Draw the final frame immediately
+                    draw();
+                    
+                    // The restart button is already active from the start of the sequence.
+                }, 150); 
+                
+            }, 50); 
+        }
+
+        /** Checks for collisions between player and entities */
+        function checkCollisions() {
+            const detectionRadiusFactor = currentCollectionRadiusMultiplier;
+
+            // Player vs Collectibles
+            for (let i = collectibles.length - 1; i >= 0; i--) {
+                const item = collectibles[i];
+                // Detection radius is based on item radius + player size, multiplied by factor
+                const effectiveDetectionRadius = PLAYER_SIZE + item.radius * detectionRadiusFactor; 
+                
+                const distance = Math.sqrt(
+                    (player.x - item.x) ** 2 + (player.y - item.y) ** 2
+                );
+
+                if (distance < effectiveDetectionRadius) {
+                    // Collision detected! Collect element
+                    score++;
+                    scoreDisplay.textContent = score.toLocaleString();
+                    collectibles.splice(i, 1);
+                    // Spawn a new one to replace it
+                    spawnCollectible(); 
+                    
+                    // Check for Win Condition!
+                    if (score >= SCORE_GOAL) {
+                        endGame(true); // Win condition met
+                        return;
+                    }
+                }
+            }
+
+            // Player vs Obstacles
+            for (const obs of obstacles) {
+                 // Simple box-to-circle collision check
+                const closestX = Math.max(obs.x - obs.size / 2, Math.min(player.x, obs.x + obs.size / 2));
+                const closestY = Math.max(obs.y - obs.size / 2, Math.min(player.y, obs.y + obs.size / 2));
+                
+                const distanceX = player.x - closestX;
+                const distanceY = player.y - closestY;
+                
+                // PLAYER_SIZE is the diameter of the player hitbox for collision (simplified to a circle for calculation)
+                const playerRadiusSquared = (PLAYER_SIZE * 0.5) ** 2;
+                
+                if (distanceX * distanceX + distanceY * distanceY < playerRadiusSquared) { 
+                    // Collision detected!
+                    if (hasAblativeArmor) {
+                        // Armor absorbs the hit
+                        hasAblativeArmor = false;
+                    } else {
+                        // No armor, Game Over (Loss)
+                        endGame(false); // Call endGame which initiates the jumpscare sequence
+                        return;
+                    }
+                }
+            }
+        }
+
+        let lastTime = 0;
+        /** The main game loop */
+        function gameLoop(currentTime) {
+            if (!gameActive) {
+                // Keep drawing the scary face or static if active, even if the game is paused
+                if (isScaryFaceActive || isScareActive) {
+                    draw();
+                    animationFrame = requestAnimationFrame(gameLoop);
+                }
+                return;
+            }
+
+            const deltaTime = (currentTime - lastTime) / 1000; // time elapsed in seconds
+            lastTime = currentTime;
+
+            // 1. Update Timers
+            updateEffects(deltaTime);
+
+            // 2. Input/Movement
+            player.dx = 0;
+            player.dy = 0;
+            if (keys['ArrowUp']) player.dy = -1;
+            if (keys['ArrowDown']) player.dy = 1;
+            if (keys['ArrowLeft']) player.dx = -1;
+            if (keys['ArrowRight']) player.dx = 1;
+            
+            // Normalize diagonal movement speed (optional, but good practice)
+            if (player.dx !== 0 && player.dy !== 0) {
+                const mag = Math.sqrt(player.dx * player.dx + player.dy * player.dy);
+                player.dx /= mag;
+                player.dy /= mag;
+            }
+
+            // 3. Update positions
+            movePlayer();
+            moveObstacles();
+
+            // 4. Check collisions
+            checkCollisions();
+
+            // 5. Draw everything
+            draw();
+
+            // 6. Next frame
+            animationFrame = requestAnimationFrame(gameLoop);
+        }
+
+        /** Starts the timer */
+        function startTimer() {
+            timeLeft = GAME_DURATION;
+            timeDisplay.textContent = timeLeft.toString(); 
+            gameInterval = setInterval(() => {
+                // Note: time is BigInt and is decremented by 1n (1 second)
+                timeLeft = timeLeft - 1n; 
+                timeDisplay.textContent = timeLeft.toString();
+                if (timeLeft <= 0n) { 
+                    clearInterval(gameInterval);
+                    endGame(false);
+                }
+            }, 1000);
+        }
+
+        /** Ends the game */
+        function endGame(win = false) {
+            gameActive = false;
+            cancelAnimationFrame(animationFrame);
+            clearInterval(gameInterval);
+            
+            // CRITICAL: Ensure the restart button is visible and active IMMEDIATELY on game over
+            restartBtn.classList.add('active-btn');
+            
+            if (win) {
+                showGameStatusModal(true);
+            } else {
+                // If loss (collision or timer zero), trigger the jumpscare sequence
+                triggerJumpscareSequence(); 
+            }
+        }
+
+        /** Initializes the game state and starts the loop */
+        function startGame() {
+            gameActive = true;
+            score = 0;
+            scoreDisplay.textContent = 0;
+            goalDisplay.textContent = SCORE_GOAL.toLocaleString();
+            
+            // Hide all end screens/modals
+            gameOverModal.classList.add('hidden');
+            gameOverModal.classList.remove('flex');
+            shopModal.classList.add('hidden'); 
+            shopModal.classList.remove('flex');
+
+            // Deactivate visual shock states
+            isScareActive = false; 
+            isScaryFaceActive = false;
+            
+            // Deactivate external restart button
+            restartBtn.classList.remove('active-btn');
+            
+            // Reset player and power-up state
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            keys = {};
+            playerSpeed = BASE_PLAYER_SPEED;
+            currentCollectionRadiusMultiplier = 1;
+            hasAblativeArmor = false;
+            speedBoostTimer = 0;
+            magnetFieldTimer = 0;
+
+            // Reset entities
+            collectibles = [];
+            obstacles = [];
+            for (let i = 0; i < MAX_COLLECTIBLES; i++) spawnCollectible();
+            for (let i = 0; i < MAX_OBSTACLES; i++) spawnObstacle();
+
+            // Start everything
+            clearInterval(gameInterval);
+            startTimer();
+            cancelAnimationFrame(animationFrame);
+            lastTime = performance.now(); // Initialize lastTime
+            gameLoop(lastTime);
+        }
+
+        // --- Shop Functions (Unchanged) ---
+
+        /** Generates the HTML structure for a single shop item */
+        function renderShopItem(key, item) {
+            let statusText = '';
+            let isDisabled = score < item.cost;
+
+            if (key === 'ablativeArmor') {
+                statusText = hasAblativeArmor ? 
+                    '<span class="text-lime-400">ACTIVE</span>' : 
+                    '<span class="text-gray-400">Available</span>';
+                isDisabled = isDisabled || hasAblativeArmor;
+            } else if (key === 'speedBoost') {
+                 statusText = speedBoostTimer > 0 ? 
+                    `<span class="text-lime-400">${Math.ceil(speedBoostTimer)}s LEFT</span>` : 
+                    '<span class="text-gray-400">Ready</span>';
+            } else if (key === 'magnetField') {
+                 statusText = magnetFieldTimer > 0 ? 
+                    `<span class="text-lime-400">${Math.ceil(magnetFieldTimer)}s LEFT</span>` : 
+                    '<span class="text-gray-400">Ready</span>';
+            }
+
+            return `
+                <div class="bg-gray-700 p-4 rounded-lg flex justify-between items-center border-l-4 ${key === 'ablativeArmor' && hasAblativeArmor ? 'border-orange-500' : 'border-yellow-500'}">
+                    <div>
+                        <p class="text-xl text-yellow-300 font-bold">${item.name}</p>
+                        <p class="text-sm text-gray-300">${item.description}</p>
+                        <p class="text-sm text-white mt-1">Status: ${statusText}</p>
+                    </div>
+                    <button data-item-key="${key}" class="buy-btn" ${isDisabled ? 'disabled' : ''}>
+                        <span class="text-xs">BUY FOR</span> <br>
+                        ${item.cost.toLocaleString()} <span class="text-xs">E</span>
+                    </button>
+                </div>
+            `;
+        }
+        
+        /** Opens the shop modal and updates item availability */
+        function openShop() {
+            if (!gameActive) return; // Only open while game is running
+            
+            // Populate and update shop items
+            shopItemsContainer.innerHTML = Object.keys(SHOP_ITEMS).map(key => 
+                renderShopItem(key, SHOP_ITEMS[key])
+            ).join('');
+
+            shopScoreDisplay.textContent = score.toLocaleString();
+
+            // Attach event listeners to newly rendered buy buttons
+            shopItemsContainer.querySelectorAll('.buy-btn').forEach(button => {
+                button.onclick = () => buyItem(button.dataset.itemKey);
+            });
+
+            // Pause game loop
+            cancelAnimationFrame(animationFrame);
+
+            shopModal.classList.add('flex');
+            shopModal.classList.remove('hidden');
+        }
+
+        /** Closes the shop modal and resumes the game */
+        function closeShop() {
+            if (gameActive) {
+                // Resume game loop
+                lastTime = performance.now(); // Reset lastTime to avoid huge delta
+                gameLoop(lastTime);
+            }
+            shopModal.classList.add('hidden');
+            shopModal.classList.remove('flex');
+        }
+        
+        /** Handles the purchase logic for an item */
+        function buyItem(key) {
+            const item = SHOP_ITEMS[key];
+            if (score < item.cost) {
+                console.error("Not enough elements!");
+                return;
+            }
+
+            score -= item.cost;
+            scoreDisplay.textContent = score.toLocaleString(); // Update HUD score
+
+            switch (key) {
+                case 'speedBoost':
+                    // Apply speed boost effect
+                    playerSpeed = BASE_PLAYER_SPEED * 2;
+                    speedBoostTimer = item.duration;
+                    break;
+                case 'magnetField':
+                    // Apply magnet field effect
+                    currentCollectionRadiusMultiplier = 2; // Double radius factor
+                    magnetFieldTimer = item.duration;
+                    break;
+                case 'ablativeArmor':
+                    // Apply armor effect
+                    hasAblativeArmor = true;
+                    break;
+                default:
+                    break;
+            }
+
+            // Re-render shop to update score and button states
+            openShop(); 
+        }
+
+
+        // --- Event Handlers ---
+
+        function handleResize() {
+            const containerWidth = canvas.parentElement.clientWidth;
+            canvas.width = containerWidth;
+            canvas.height = containerWidth / 2;
+            
+            initializeStars(true); 
+
+            if (!gameActive && isScaryFaceActive) {
+                // Redraw the scary face on resize to fit the new canvas dimensions
+                drawScaryFace();
+            } else if (gameActive) {
+                // If game is active, redraw
+                draw(); 
+            } else {
+                 // If game is at start screen or game over screen without active scare.
+                 draw(); 
+            }
+        }
+        
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('load', () => {
+             handleResize(); 
+        });
+
+        // Keyboard Input (Arrow Keys)
+        document.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && gameActive && shopModal.classList.contains('hidden')) {
+                keys[e.key] = true;
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                keys[e.key] = false;
+            }
+        });
+        
+        // Touch Input (Mobile Controls)
+        function setupTouchControls() {
+            const controls = {
+                upBtn: 'ArrowUp',
+                downBtn: 'ArrowDown',
+                leftBtn: 'ArrowLeft',
+                rightBtn: 'ArrowRight',
+            };
+
+            const toggleKey = (key, state) => {
+                if (gameActive && shopModal.classList.contains('hidden')) {
+                    keys[key] = state;
+                }
+            };
+
+            for (const [btnId, keyName] of Object.entries(controls)) {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        toggleKey(keyName, true);
+                    });
+                    btn.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        toggleKey(keyName, false);
+                    });
+                    
+                    btn.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                        toggleKey(keyName, true);
+                    });
+                    btn.addEventListener('mouseup', (e) => {
+                        e.preventDefault();
+                        toggleKey(keyName, false);
+                    });
+                }
+            }
+        }
+
+
+        // Start game on button click
+        restartBtn.addEventListener('click', startGame);
+        modalStartBtn.addEventListener('click', startGame);
+        shopBtn.addEventListener('click', openShop);
+        closeShopBtn.addEventListener('click', closeShop);
+
+        // --- Initial Call (Setup Start Screen) ---
+        handleResize();
+        setupTouchControls();
+        
+        setTimeout(() => {
+            goalDisplay.textContent = SCORE_GOAL.toLocaleString(); // Ensure goal is visible on the HUD
+            
+            modalTitle.textContent = 'MISSION START';
+            modalTitle.classList.remove('text-lime-400');
+            modalTitle.classList.add('text-cyan-400');
+            modalMessage.textContent = `Collect ${SCORE_GOAL.toLocaleString()} elements! Avoid the space junk! Time limit: ${GAME_DURATION} seconds.`;
+            modalStartBtn.textContent = 'Begin Mission';
+
+            gameOverModal.classList.add('flex');
+            gameOverModal.classList.remove('hidden');
+        }, 100); 
+
+    </script>
 </body>
 </html>

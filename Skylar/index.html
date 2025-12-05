@@ -1,100 +1,1046 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-M">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Labs</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Custom gradient background */
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
+            background: linear-gradient(135deg, #fce4ec, #e3f2fd, #e8f5e9); /* baby pink, baby blue, light green */
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Define platform colors for levels */
+        .platform-color-0 { background-color: #9ca3af; } /* Gray */
+        .platform-color-1 { background-color: #60a5fa; } /* Blue */
+        .platform-color-2 { background-color: #6366f1; } /* Indigo */
+        .platform-color-3 { background-color: #a855f7; } /* Purple */
+        .platform-color- { background-color: #ec4899; } /* Pink */
+        /* Add more colors as needed */
+
+        /* Checkpoint platform style */
+        .platform-checkpoint {
+            background-image: repeating-linear-gradient(
+                45deg,
+                #fde047,
+                #fde047 10px,
+                #facc15 10px,
+                #facc15 20px
+            );
+        }
+
+        /* Player element */
+        #player {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            /* transition: all 0.3s ease; */ /* Removed transition for smooth physics */
+        }
+
+        /* Science tubes */
+        .tube {
+            width: 60px;
+            height: 120px;
+            border: 4px solid #4b5563; /* gray-700 */
+            border-top: none;
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            background-color: #e5e7eb; /* gray-200 */
             overflow: hidden;
         }
+        /* REMOVED .tube::before, #chemical-1::before, and #chemical-2::before styles */
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
+        /* NEW liquid style */
+        .liquid {
             position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60%; /* Fill level */
+            transition: background-color 0.5s ease, box-shadow 0.5s ease;
+        }
+        
+        /* Dragging state */
+        .dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+            transform: scale(1.1);
         }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        /* Drop target hover */
+        .drop-hover {
+            border-color: #22c55e; /* green-500 */
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.7);
+        }
+
+        /* Reaction Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        /* REMOVED @keyframes glow and .glow::before */
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        .glow::before {
+            /* Purple reaction */
+            animation: glow 1s ease-in-out;
+            background-color: #a855f7 !important; 
+        }
+
+        /* Heartbeat animation for continue button */
+        @keyframes heartbeat {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        .pulse {
+            animation: heartbeat 1.5s ease-in-out infinite;
         }
     </style>
+    <!-- Use Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="w-full min-h-screen flex items-center justify-center p-4">
 
-    <div class="scanline"></div>
+    <!-- ===== Start Screen (Visible First) ===== -->
+    <div id="start-screen" class="w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl text-center">
+        <h1 class="text-5xl font-bold mb-4" style="font-family: 'Dancing Script', cursive; color: #f472b6;">Labs</h1>
+        <p class="text-lg text-gray-600 mb-8">A science adventure game!</p>
+        <button id="start-button" class="w-full bg-green-500 text-white font-bold py-4 px-6 rounded-lg text-2xl transform transition hover:scale-105 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300">
+            Start Game
+        </button>
+    </div>
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
-
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+    <!-- ===== Difficulty Selection Screen (Hidden Initially) ===== -->
+    <div id="difficulty-screen" class="hidden w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Choose Your Difficulty</h1>
+        <div class="grid grid-cols-1 gap-4">
+            <button id="easy-button" class="difficulty-button w-full bg-pink-100 text-pink-800 font-bold py-3 px-6 rounded-lg text-xl transform transition hover:scale-105 hover:bg-pink-200">
+                Easy
+                <span class="block text-sm font-normal">(+50 coins for trying)</span>
+            </button>
+            <button id="medium-button" class="difficulty-button w-full bg-yellow-100 text-yellow-800 font-bold py-3 px-6 rounded-lg text-xl transform transition hover:scale-105 hover:bg-yellow-200">
+                Medium
+                <span class="block text-sm font-normal">(0 coins for wrong answers)</span>
+            </button>
+            <button id="hard-button" class="difficulty-button w-full bg-purple-100 text-purple-800 font-bold py-3 px-6 rounded-lg text-xl transform transition hover:scale-105 hover:bg-purple-200">
+                Hard
+                <span class="block text-sm font-normal">(-50 coin penalty!)</span>
+            </button>
         </div>
     </div>
 
+    <!-- ===== Color Selection Screen (Hidden Initially) ===== -->
+    <div id="color-selection-screen" class="hidden w-full max-w-md bg-white p-8 rounded-2xl shadow-2xl text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Welcome to Labs!</h1>
+        <p class="text-lg text-gray-600 mb-6">Choose your player color:</p>
+        <div class="flex justify-center gap-4">
+            <!-- Color Swatches -->
+            <div class="color-swatch w-16 h-16 rounded-full cursor-pointer border-4 border-transparent hover:border-gray-400" style="background-color: #f472b6;" data-color="#f472b6"></div> <!-- Pink -->
+            <div class="color-swatch w-16 h-16 rounded-full cursor-pointer border-4 border-transparent hover:border-gray-400" style="background-color: #60a5fa;" data-color="#60a5fa"></div> <!-- Blue -->
+            <div class="color-swatch w-16 h-16 rounded-full cursor-pointer border-4 border-transparent hover:border-gray-400" style="background-color: #4ade80;" data-color="#4ade80"></div> <!-- Green -->
+            <div class="color-swatch w-16 h-16 rounded-full cursor-pointer border-4 border-transparent hover:border-gray-400" style="background-color: #facc15;" data-color="#facc15"></div> <!-- Yellow -->
+            <div class="color-swatch w-16 h-16 rounded-full cursor-pointer border-4 border-transparent hover:border-gray-400" style="background-color: #c084fc;" data-color="#c084fc"></div> <!-- Purple -->
+        </div>
+    </div>
+
+    <!-- ===== Game Container (Hidden Initially) ===== -->
+    <div id="game-container" class="hidden w-full max-w-4xl mx-auto">
+        <!-- Header: Title, Level, Coins -->
+        <div class="flex justify-between items-center mb-4 p-4 bg-white/70 rounded-xl shadow-lg">
+            <h1 class="text-4xl font-bold" style="font-family: 'Dancing Script', cursive; color: #f472b6;">Labs</h1>
+            <div class="text-right">
+                <div id="level-display" class="text-xl font-bold text-gray-700">Level: 1</div>
+                <div id="coin-display" class="text-xl font-bold text-yellow-500">Coins: 0 💰</div>
+            </div>
+        </div>
+
+        <!-- Game Area -->
+        <div id="game-area" class="relative w-full h-[600px] bg-white/50 rounded-xl shadow-inner overflow-hidden" style="background: linear-gradient(135deg, #fce4ec, #e3f2fd, #e8f5e9);">
+            <!-- Platforms and player will be added here by JS -->
+            <div id="player" style="background-color: #f472b6;"></div>
+        </div>
+    </div>
+
+    <!-- ===== Quiz Modal (Hidden) ===== -->
+    <div id="quiz-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-yellow-50 w-full max-w-sm p-6 rounded-2xl shadow-2xl border-4 border-amber-400">
+            
+            <h2 class="text-2xl font-bold text-center text-amber-900 mb-4">🧪 Checkpoint Challenge! 🧪</h2>
+
+            <!-- Lab Area: Chemicals -->
+            <div id="lab-area" class="flex justify-around items-center h-48">
+                <!-- Draggable Chemical -->
+                <div class="text-center">
+                    <div id="chemical-1" class="tube" draggable="true">
+                        <div id="liquid-1" class="liquid"></div> <!-- ADDED liquid div -->
+                    </div>
+                    <p class="font-semibold mt-2 text-gray-700">Chemical 1</p> <!-- Changed color -->
+                </div>
+                
+                <span class="text-3xl font-bold text-gray-600">+</span>
+
+                <!-- Drop Target Chemical -->
+                <div class="text-center">
+                    <div id="chemical-2" class="tube">
+                        <div id="liquid-2" class="liquid"></div> <!-- ADDED liquid div -->
+                    </div>
+                    <p class="font-semibold mt-2 text-gray-700">Chemical 2</p> <!-- Changed color -->
+                </div>
+            </div>
+            
+            <p id="drag-prompt" class="text-center text-gray-600 font-medium mt-2">Drag Chemical 1 to Chemical 2 to mix!</p>
+
+            <!-- NEW Timer Bar -->
+            <div id="timer-container" class="hidden w-full h-3 bg-gray-300 rounded-full overflow-hidden mb-4">
+                <div id="timer-bar" class="h-full bg-blue-500 transition-all duration-100 ease-linear" style="width: 100%"></div>
+            </div>
+
+            <!-- Quiz Question (hidden initially) -->
+            <div id="quiz-content" class="hidden">
+                <p id="quiz-question" class="text-lg font-semibold text-gray-800 mb-4 text-center">What happens when you mix these?</p>
+                
+                <!-- Answer Options -->
+                <div id="answer-options" class="grid grid-cols-1 gap-3">
+                    <!-- Buttons added by JS -->
+                </div>
+            </div>
+
+            <!-- Feedback Message -->
+            <p id="feedback-message" class="text-center font-bold mt-4 h-6"></p>
+
+            <!-- Continue Button (hidden initially) -->
+            <button id="continue-button" class="hidden w-full bg-green-500 text-white font-bold py-3 px-4 rounded-lg mt-4 text-lg transform transition hover:scale-105 hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300">
+                Continue ➡️
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom Message Box (for alerts) -->
+    <div id="message-box" class="hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-xl shadow-2xl text-center z-50">
+        <p id="message-text" class="text-xl font-medium text-gray-700 mb-6">This is a message!</p>
+        <button id="message-ok" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600">OK</button>
+    </div>
+
+
+    <script type="module">
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
+        const difficultyScreen = document.getElementById('difficulty-screen'); // ADDED
+        const easyButton = document.getElementById('easy-button'); // ADDED
+        const mediumButton = document.getElementById('medium-button'); // ADDED
+        const hardButton = document.getElementById('hard-button'); // ADDED
+        const colorScreen = document.getElementById('color-selection-screen');
+        const gameContainer = document.getElementById('game-container');
+        const gameArea = document.getElementById('game-area');
+        const player = document.getElementById('player');
+        const levelDisplay = document.getElementById('level-display');
+        const coinDisplay = document.getElementById('coin-display');
+        
+        const quizModal = document.getElementById('quiz-modal');
+        const labArea = document.getElementById('lab-area');
+        const dragPrompt = document.getElementById('drag-prompt');
+        const chemical1 = document.getElementById('chemical-1');
+        const chemical2 = document.getElementById('chemical-2');
+        const liquid1 = document.getElementById('liquid-1'); // ADDED
+        const liquid2 = document.getElementById('liquid-2'); // ADDED
+        
+        const timerContainer = document.getElementById('timer-container'); // ADDED
+        const timerBar = document.getElementById('timer-bar'); // ADDED
+        
+        const quizContent = document.getElementById('quiz-content');
+        const quizQuestion = document.getElementById('quiz-question');
+        const answerOptions = document.getElementById('answer-options');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const continueButton = document.getElementById('continue-button');
+
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const messageOk = document.getElementById('message-ok');
+
+        // --- Game State ---
+        let currentLevel = 0;
+        let questionNumber = 0; // Tracks which question we are on
+        let playerPosition = { x: 50, y: 550 };
+        let playerColor = '#f472b6'; // Default pink
+        let coins = 0;
+        let currentQuestion = null;
+        let gameDifficulty = 'medium'; // ADDED (default)
+        let quizTimerInterval = null; // ADDED
+        let currentReactionColor = '#a855f7'; // ADDED
+        const chemicalColors = ['#ef4444', '#3b82f6', '#22c55e', '#facc15', '#a855f7', '#f97316', '#06b6d4', '#ec4899']; // ADDED
+
+        // --- NEW PHYSICS STATE ---
+        let keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false };
+        let playerVelocityY = 0;
+        let playerVelocityX = 0;
+        let gravity = 0.5;
+        let jumpStrength = 11;
+        let moveSpeed = 4;
+        let isOnGround = false;
+        let playerWidth = 30;
+        let playerHeight = 30;
+        let lastCheckpointPlatform = null; // Prevents re-triggering quiz
+
+        // --- Game Data ---
+        // (x, y, width, height, type)
+        // type: 'normal', 'checkpoint'
+        const levels = [
+            // Level 1
+            [
+                { x: 20, y: 550, w: 100, h: 20, type: 'normal' },
+                { x: 150, y: 500, w: 100, h: 20, type: 'normal' },
+                { x: 300, y: 450, w: 100, h: 20, type: 'normal' },
+                { x: 450, y: 400, w: 150, h: 20, type: 'checkpoint' },
+            ],
+            // Level 2
+            [
+                { x: 450, y: 400, w: 100, h: 20, type: 'normal' },
+                { x: 300, y: 350, w: 100, h: 20, type: 'normal' },
+                { x: 150, y: 300, w: 100, h: 20, type: 'normal' },
+                { x: 50, y: 250, w: 150, h: 20, type: 'checkpoint' },
+            ],
+            // Level 3
+            [
+                { x: 50, y: 250, w: 100, h: 20, type: 'normal' },
+                { x: 200, y: 200, w: 100, h: 20, type: 'normal' },
+                { x: 350, y: 150, w: 100, h: 20, type: 'normal' },
+                { x: 500, y: 100, w: 150, h: 20, type: 'checkpoint' },
+            ],
+            // Level 4 - NEW
+            [
+                { x: 500, y: 100, w: 100, h: 20, type: 'normal' },
+                { x: 350, y: 180, w: 100, h: 20, type: 'normal' },
+                { x: 200, y: 260, w: 100, h: 20, type: 'normal' },
+                { x: 50, y: 340, w: 100, h: 20, type: 'normal' },
+                { x: 200, y: 420, w: 150, h: 20, type: 'checkpoint' },
+            ],
+            // Level 5 - NEW
+            [
+                { x: 200, y: 420, w: 100, h: 20, type: 'normal' },
+                { x: 350, y: 350, w: 100, h: 20, type: 'normal' },
+                { x: 200, y: 280, w: 100, h: 20, type: 'normal' },
+                { x: 350, y: 210, w: 100, h: 20, type: 'normal' },
+                { x: 200, y: 140, w: 150, h: 20, type: 'checkpoint' },
+            ]
+        ];
+
+        // ADDED: New smaller platforms for Hard mode
+        const levels_hard = [
+            // Level 1 - Hard
+            [
+                { x: 20, y: 550, w: 70, h: 20, type: 'normal' },
+                { x: 150, y: 500, w: 70, h: 20, type: 'normal' },
+                { x: 300, y: 450, w: 70, h: 20, type: 'normal' },
+                { x: 450, y: 400, w: 100, h: 20, type: 'checkpoint' },
+            ],
+            // Level 2 - Hard
+            [
+                { x: 450, y: 400, w: 70, h: 20, type: 'normal' },
+                { x: 300, y: 350, w: 70, h: 20, type: 'normal' },
+                { x: 150, y: 300, w: 70, h: 20, type: 'normal' },
+                { x: 50, y: 250, w: 100, h: 20, type: 'checkpoint' },
+            ],
+            // Level 3 - Hard
+            [
+                { x: 50, y: 250, w: 70, h: 20, type: 'normal' },
+                { x: 200, y: 200, w: 70, h: 20, type: 'normal' },
+                { x: 350, y: 150, w: 70, h: 20, type: 'normal' },
+                { x: 500, y: 100, w: 100, h: 20, type: 'checkpoint' },
+            ],
+            // Level 4 - Hard
+            [
+                { x: 500, y: 100, w: 70, h: 20, type: 'normal' },
+                { x: 350, y: 180, w: 70, h: 20, type: 'normal' },
+                { x: 200, y: 260, w: 70, h: 20, type: 'normal' },
+                { x: 50, y: 340, w: 70, h: 20, type: 'normal' },
+                { x: 200, y: 420, w: 100, h: 20, type: 'checkpoint' },
+            ],
+            // Level 5 - Hard
+            [
+                { x: 200, y: 420, w: 70, h: 20, type: 'normal' },
+                { x: 350, y: 350, w: 70, h: 20, type: 'normal' },
+                { x: 200, y: 280, w: 70, h: 20, type: 'normal' },
+                { x: 350, y: 210, w: 70, h: 20, type: 'normal' },
+                { x: 200, y: 140, w: 100, h: 20, type: 'checkpoint' },
+            ]
+        ];
+
+        // New 50-question quiz data (Grade 7 Focus)
+        const quizData = [
+            // ----- Chemistry (10) -----
+            {
+                question: "What do you call a substance with a pH level below 7?",
+                options: [ { text: "Acid", correct: true }, { text: "Base", correct: false }, { text: "Neutral", correct: false } ]
+            },
+            {
+                question: "What is the smallest particle of an element?",
+                options: [ { text: "Molecule", correct: false }, { text: "Cell", correct: false }, { text: "Atom", correct: true } ]
+            },
+            {
+                question: "What is H2O more commonly known as?",
+                options: [ { text: "Water", correct: true }, { text: "Hydrogen Peroxide", correct: false }, { text: "Salt", correct: false } ]
+            },
+            {
+                question: "Is dissolving sugar in water a physical or chemical change?",
+                options: [ { text: "Physical Change", correct: true }, { text: "Chemical Change", correct: false }, { text: "Both", correct: false } ]
+            },
+            {
+                question: "What is the center of an atom called?",
+                options: [ { text: "Electron", correct: false }, { text: "Nucleus", correct: true }, { text: "Proton", correct: false } ]
+            },
+            {
+                question: "What do you call a substance with a pH level above 7?",
+                options: [ { text: "Acid", correct: false }, { text: "Base", correct: true }, { text: "Neutral", correct: false } ]
+            },
+            {
+                question: "What is the process of a gas turning into a liquid?",
+                options: [ { text: "Evaporation", correct: false }, { text: "Sublimation", correct: false }, { text: "Condensation", correct: true } ]
+            },
+            {
+                question: "What is the periodic table?",
+                options: [ { text: "A list of all known elements", correct: true }, { text: "A multiplication table", correct: false }, { text: "A list of chemical reactions", correct: false } ]
+            },
+            {
+                question: "What happens when you burn wood?",
+                options: [ { text: "A physical change", correct: false }, { text: "A chemical change", correct: true }, { text: "A nuclear change", correct: false } ]
+            },
+            {
+                question: "What state of matter has a definite shape and volume?",
+                options: [ { text: "Solid", correct: true }, { text: "Liquid", correct: false }, { text: "Gas", correct: false } ]
+            },
+            // ----- Physics (10) -----
+            {
+                question: "What force pulls objects toward the center of the Earth?",
+                options: [ { text: "Magnetism", correct: false }, { text: "Friction", correct: false }, { text: "Gravity", correct: true } ]
+            },
+            {
+                question: "What is the energy of motion called?",
+                options: [ { text: "Potential Energy", correct: false }, { text: "Kinetic Energy", correct: true }, { text: "Chemical Energy", correct: false } ]
+            },
+            {
+                question: "What is stored energy called?",
+                options: [ { text: "Potential Energy", correct: true }, { text: "Kinetic Energy", correct: false }, { text: "Nuclear Energy", correct: false } ]
+            },
+            {
+                question: "'For every action, there is an equal and opposite reaction' is which of Newton's Laws?",
+                options: [ { text: "First Law", correct: false }, { text: "Second Law", correct: false }, { text: "Third Law", correct: true } ]
+            },
+            {
+                question: "What material does NOT let electricity pass through it?",
+                options: [ { text: "Conductor", correct: false }, { text: "Insulator", correct: true }, { text: "Semiconductor", correct: false } ]
+            },
+            {
+                question: "What material lets electricity pass through it easily?",
+                options: [ { text: "Conductor", correct: true }, { text: "Insulator", correct: false }, { text: "Resistor", correct: false } ]
+            },
+            {
+                question: "What are the two poles of a magnet?",
+                options: [ { text: "Up and Down", correct: false }, { text: "East and West", correct: false }, { text: "North and South", correct: true } ]
+            },
+            {
+                question: "What type of energy does the sun provide?",
+                options: [ { text: "Solar Energy", correct: true }, { text: "Geothermal Energy", correct: false }, { text: "Nuclear Energy", correct: false } ]
+            },
+            {
+                question: "What is it called when light bounces off a surface?",
+                options: [ { text: "Reflection", correct: true }, { text: "Refraction", correct: false }, { text: "Absorption", correct: false } ]
+            },
+            {
+                question: "What is the resistance to motion when two objects rub against each other?",
+                options: [ { text: "Gravity", correct: false }, { text: "Friction", correct: true }, { text: "Inertia", correct: false } ]
+            },
+            // ----- Biology (20) -----
+            {
+                question: "What is the 'powerhouse' of the cell?",
+                options: [ { text: "Nucleus", correct: false }, { text: "Mitochondria", correct: true }, { text: "Cell Membrane", correct: false } ]
+            },
+            {
+                question: "What is the process plants use to make food from sunlight?",
+                options: [ { text: "Respiration", correct: false }, { text: "Photosynthesis", correct: true }, { text: "Digestion", correct: false } ]
+            },
+            {
+                question: "What is the 'brain' of the cell?",
+                options: [ { text: "Nucleus", correct: true }, { text: "Cytoplasm", correct: false }, { text: "Ribosome", correct: false } ]
+            },
+            {
+                question: "What gas do plants release during photosynthesis?",
+                options: [ { text: "Carbon Dioxide", correct: false }, { text: "Nitrogen", correct: false }, { text: "Oxygen", correct: true } ]
+            },
+            {
+                question: "What part of the plant absorbs water and nutrients from the soil?",
+                options: [ { text: "Leaves", correct: false }, { text: "Stem", correct: false }, { text: "Roots", correct: true } ]
+            },
+            {
+                question: "What pumps blood through the human body?",
+                options: [ { text: "Lungs", correct: false }, { text: "Heart", correct: true }, { text: "Brain", correct: false } ]
+            },
+            {
+                question: "What organ in the human body is responsible for breathing?",
+                options: [ { text: "Lungs", correct: true }, { text: "Liver", correct: false }, { text: "Kidneys", correct: false } ]
+            },
+            {
+                question: "What is the control center of the human body?",
+                options: [ { text: "Heart", correct: false }, { text: "Brain", correct: true }, { text: "Stomach", correct: false } ]
+            },
+            {
+                question: "What is the hard outer layer of a plant cell called?",
+                options: [ { text: "Cell Membrane", correct: false }, { text: "Cell Wall", correct: true }, { text: "Chloroplast", correct: false } ]
+            },
+            {
+                question: "What pigment makes plants green?",
+                options: [ { text: "Chlorophyll", correct: true }, { text: "Melanin", correct: false }, { text: "Hemoglobin", correct: false } ]
+            },
+            {
+                question: "What carries oxygen in your blood?",
+                options: [ { text: "White blood cells", correct: false }, { text: "Red blood cells", correct: true }, { text: "Plasma", correct: false } ]
+            },
+            {
+                question: "What do you call an animal that only eats plants?",
+                options: [ { text: "Carnivore", correct: false }, { text: "Herbivore", correct: true }, { text: "Omnivore", correct: false } ]
+            },
+            {
+                question: "What do you call an animal that only eats meat?",
+                options: [ { text: "Carnivore", correct: true }, { text: "Herbivore", correct: false }, { text: "Omnivore", correct: false } ]
+            },
+            {
+                question: "What do you call an animal that eats both plants and meat?",
+                options: [ { text: "Carnivore", correct: false }, { text: "Herbivore", correct: false }, { text: "Omnivore", correct: true } ]
+            },
+            {
+                question: "What is DNA?",
+                options: [ { text: "The powerhouse of the cell", correct: false }, { text: "The genetic blueprint for life", correct: true }, { text: "A type of sugar", correct: false } ]
+            },
+            {
+                question: "What part of the cell controls what enters and leaves?",
+                options: [ { text: "Cell Membrane", correct: true }, { text: "Nucleus", correct: false }, { text: "Cytoplasm", correct: false } ]
+            },
+            {
+                question: "What is it called when a species completely dies out?",
+                options: [ { text: "Hibernation", correct: false }, { text: "Evolution", correct: false }, { text: "Extinction", correct: true } ]
+            },
+            {
+                question: "What system in your body fights off germs and sickness?",
+                options: [ { text: "Digestive System", correct: false }, { text: "Immune System", correct: true }, { text: "Nervous System", correct: false } ]
+            },
+            {
+                question: "What are the tiny building blocks of all living things?",
+                options: [ { text: "Atoms", correct: false }, { text: "Cells", correct: true }, { text: "Molecules", correct: false } ]
+            },
+            {
+                question: "What is the process of a caterpillar turning into a butterfly?",
+                options: [ { text: "Photosynthesis", correct: false }, { text: "Metamorphosis", correct: true }, { text: "Respiration", correct: false } ]
+            },
+            // ----- Earth Science (10) -----
+            {
+                question: "What is the name of our galaxy?",
+                options: [ { text: "Andromeda", correct: false }, { text: "The Milky Way", correct: true }, { text: "The Solar System", correct: false } ]
+            },
+            {
+                question: "How many planets are in our solar system?",
+                options: [ { text: "8", correct: true }, { text: "9", correct: false }, { text: "10", correct: false } ]
+            },
+            {
+                question: "What planet is known as the 'Red Planet'?",
+                options: [ { text: "Mars", correct: true }, { text: "Jupiter", correct: false }, { text: "Venus", correct: false } ]
+            },
+            {
+                question: "What is the largest planet in our solar system?",
+                options: [ { text: "Saturn", correct: false }, { text: "Jupiter", correct: true }, { text: "Earth", correct: false } ]
+            },
+            {
+                question: "What is the name of the star at the center of our solar system?",
+                options: [ { text: "The Moon", correct: false }, { text: "The Sun", correct: true }, { text: "Proxima Centauri", correct: false } ]
+            },
+            {
+                question: "What causes the seasons on Earth?",
+                options: [ { text: "The Earth's distance from the Sun", correct: false }, { text: "The Earth's tilt on its axis", correct: true }, { text: "The Moon's pull", correct: false } ]
+            },
+            {
+                question: "What is the process of water evaporating, forming clouds, and falling as rain?",
+                options: [ { text: "The Water Cycle", correct: true }, { text: "The Carbon Cycle", correct: false }, { text: "The Rock Cycle", correct: false } ]
+            },
+            {
+                question: "What is molten rock called when it is *inside* the Earth?",
+                options: [ { text: "Magma", correct: true }, { text: "Lava", correct: false }, { text: "Igneous", correct: false } ]
+            },
+            {
+                question: "What is molten rock called when it erupts *onto* the surface?",
+                options: [ { text: "Magma", correct: false }, { text: "Lava", correct: true }, { text: "Sedimentary", correct: false } ]
+            },
+            {
+                question: "What force causes the tides in the ocean?",
+                options: [ { text: "The Moon's gravity", correct: true }, { text: "The Earth's rotation", correct: false }, { text: "Wind", correct: false } ]
+            }
+        ];
+
+        // --- Functions ---
+
+        // Show a custom alert message
+        function showMessage(text) {
+            messageText.textContent = text;
+            messageBox.classList.remove('hidden');
+        }
+
+        // Start the game
+        function startGame(color) {
+            playerColor = color;
+            player.style.backgroundColor = playerColor;
+            colorScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+
+            // --- NEW: Add keyboard listeners ---
+            document.addEventListener('keydown', (e) => {
+                if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+            });
+            document.addEventListener('keyup', (e) => {
+                if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+            });
+            
+            renderLevel(); // Draw platforms
+            resetPlayer(); // Place player
+            gameLoop(); // Start physics
+        }
+
+        // ADDED: Helper function to get the correct level set
+        function getCurrentLevelSet() {
+            return (gameDifficulty === 'hard') ? levels_hard : levels;
+        }
+
+        // Render the current level's platforms
+        function renderLevel() {
+            gameArea.innerHTML = ''; // Clear old platforms
+            
+            const levelSet = getCurrentLevelSet(); // MODIFIED
+            const levelData = levelSet[currentLevel]; // MODIFIED
+            const platformColor = `platform-color-${currentLevel % 5}`; // Cycle colors
+
+            levelData.forEach(p => {
+                const platform = document.createElement('div');
+                platform.style.left = `${p.x}px`;
+                platform.style.top = `${p.y}px`;
+                platform.style.width = `${p.w}px`;
+                platform.style.height = `${p.h}px`;
+                platform.classList.add('absolute', 'rounded-md', 'shadow-md');
+                
+                if (p.type === 'checkpoint') {
+                    platform.classList.add('platform-checkpoint');
+                } else {
+                    platform.classList.add(platformColor);
+                }
+                gameArea.appendChild(platform);
+            });
+
+            // Re-add player
+            gameArea.appendChild(player);
+            // renderPlayer(); // Player is rendered by resetPlayer and gameLoop
+            
+            // Update UI
+            levelDisplay.textContent = `Question: ${questionNumber + 1} / ${quizData.length}`;
+            coinDisplay.textContent = `Coins: ${coins} 💰`;
+        }
+
+        // Update the player's position
+        function renderPlayer() {
+            player.style.left = `${playerPosition.x}px`;
+            player.style.top = `${playerPosition.y}px`;
+        }
+
+        // --- REMOVED old movePlayer function ---
+
+        // --- NEW: Reset player to level start ---
+        function resetPlayer() {
+            const levelSet = getCurrentLevelSet();
+            const startPlatform = levelSet[currentLevel][0];
+            playerPosition = { x: startPlatform.x + (startPlatform.w / 2) - (playerWidth / 2), y: startPlatform.y - playerHeight };
+            playerVelocityY = 0;
+            playerVelocityX = 0;
+            isOnGround = false;
+            lastCheckpointPlatform = null; // Clear checkpoint memory
+            renderPlayer(); // Initial render
+        }
+
+        // Find which platform was clicked (NOW USED FOR COLLISION)
+        function findPlatform(x, y) {
+            const levelData = getCurrentLevelSet()[currentLevel]; // MODIFIED
+            return levelData.find(p => 
+                x >= p.x && x <= p.x + p.w &&
+                y >= p.y && y <= p.y + p.h
+            );
+        }
+
+        // --- NEW: Physics and Game Loop ---
+        function gameLoop() {
+            // Only update physics if the quiz modal is hidden
+            if (quizModal.classList.contains('hidden')) {
+                
+                // 1. Handle Input & Horizontal Movement
+                playerVelocityX = 0;
+                if (keys.ArrowLeft) {
+                    playerVelocityX = -moveSpeed;
+                }
+                if (keys.ArrowRight) {
+                    playerVelocityX = moveSpeed;
+                }
+
+                // 2. Apply Gravity
+                if (!isOnGround) {
+                    playerVelocityY += gravity;
+                }
+
+                // 3. Handle Jump Input
+                if (keys.ArrowUp && isOnGround) {
+                    playerVelocityY = -jumpStrength;
+                    isOnGround = false;
+                }
+
+                // 4. Handle X-Axis Movement and Collision
+                playerPosition.x += playerVelocityX;
+                checkHorizontalCollisions();
+
+                // 5. Handle Y-Axis Movement and Collision
+                playerPosition.y += playerVelocityY;
+                checkVerticalCollisions();
+
+                // 6. Check for Fall (out of bounds)
+                if (playerPosition.y > gameArea.clientHeight) {
+                    resetPlayer();
+                }
+                
+                // 7. Check Wall Boundaries
+                if (playerPosition.x < 0) {
+                    playerPosition.x = 0;
+                }
+                if (playerPosition.x + playerWidth > gameArea.clientWidth) {
+                    playerPosition.x = gameArea.clientWidth - playerWidth;
+                }
+
+                // 8. Render
+                renderPlayer();
+            }
+            // Keep the loop running
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- NEW: Collision Helper Functions ---
+        function isColliding(platform) {
+            return (
+                playerPosition.x < platform.x + platform.w &&
+                playerPosition.x + playerWidth > platform.x &&
+                playerPosition.y < platform.y + platform.h &&
+                playerPosition.y + playerHeight > platform.y
+            );
+        }
+
+        function checkHorizontalCollisions() {
+            const levelSet = getCurrentLevelSet();
+            const platforms = levelSet[currentLevel];
+            for (const p of platforms) {
+                if (isColliding(p)) {
+                    if (playerVelocityX > 0) { // Moving right
+                        playerPosition.x = p.x - playerWidth;
+                    } else if (playerVelocityX < 0) { // Moving left
+                        playerPosition.x = p.x + p.w;
+                    }
+                }
+            }
+        }
+
+        function checkVerticalCollisions() {
+            isOnGround = false; // Assume we are in the air
+            const levelSet = getCurrentLevelSet();
+            const platforms = levelSet[currentLevel];
+            for (const p of platforms) {
+                if (isColliding(p)) {
+                    if (playerVelocityY > 0) { // Moving down
+                        playerPosition.y = p.y - playerHeight; // Snap to top of platform
+                        playerVelocityY = 0;
+                        isOnGround = true;
+                        // Check for checkpoint
+                        if (p.type === 'checkpoint' && lastCheckpointPlatform !== p) {
+                            lastCheckpointPlatform = p; // Remember we hit this
+                            keys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false }; // Stop player movement
+                            showQuiz();
+                        }
+                    } else if (playerVelocityY < 0) { // Moving up (hit head)
+                        playerPosition.y = p.y + p.h; // Snap to bottom of platform
+                        playerVelocityY = 0; // Bonk head, stop upward movement
+                    }
+                }
+            }
+        }
+        // --- END NEW PHYSICS ---
+
+
+        // Show the quiz modal
+        function showQuiz() {
+            currentQuestion = quizData[questionNumber];
+            if (!currentQuestion) {
+                // This case should be handled by advanceLevel, but good to have
+                console.log("Error: No more questions found.");
+                return;
+        }
+
+        // --- NEW: Pick random colors ---
+        let color1 = chemicalColors[Math.floor(Math.random() * chemicalColors.length)];
+        let color2 = chemicalColors[Math.floor(Math.random() * chemicalColors.length)];
+        while (color2 === color1) {
+            color2 = chemicalColors[Math.floor(Math.random() * chemicalColors.length)];
+        }
+        currentReactionColor = chemicalColors[Math.floor(Math.random() * chemicalColors.length)];
+        while (currentReactionColor === color1 || currentReactionColor === color2) {
+            currentReactionColor = chemicalColors[Math.floor(Math.random() * chemicalColors.length)];
+        }
+
+        liquid1.style.backgroundColor = color1;
+        liquid2.style.backgroundColor = color2;
+        liquid2.style.boxShadow = 'none'; // Reset glow
+        // --- END NEW ---
+        
+        clearInterval(quizTimerInterval); // ADDED: Clear any old timers
+        timerContainer.classList.add('hidden'); // ADDED: Hide timer
+
+        // Reset modal state
+        quizContent.classList.add('hidden');
+            labArea.classList.remove('hidden');
+            dragPrompt.classList.remove('hidden');
+        feedbackMessage.textContent = '';
+        continueButton.classList.add('hidden');
+        continueButton.classList.remove('pulse');
+            chemical2.classList.remove('shake', 'glow'); // 'glow' class is no longer used
+        
+            quizModal.classList.remove('hidden');
+    }
+
+        // --- Drag and Drop Logic ---
+        chemical1.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', 'chemical-1');
+            chemical1.classList.add('dragging');
+        });
+
+        chemical1.addEventListener('dragend', () => {
+            chemical1.classList.remove('dragging');
+        });
+
+        chemical2.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Allow drop
+            chemical2.classList.add('drop-hover');
+        });
+
+        chemical2.addEventListener('dragleave', () => {
+            chemical2.classList.remove('drop-hover');
+        });
+
+        chemical2.addEventListener('drop', (e) => {
+            e.preventDefault();
+            chemical2.classList.remove('drop-hover');
+            if (e.dataTransfer.getData('text/plain') === 'chemical-1') {
+                // Successful mix!
+                showReaction();
+            }
+        });
+
+        // Show reaction and then load question
+        function showReaction() {
+            labArea.classList.add('hidden');
+            dragPrompt.classList.add('hidden');
+            
+            // Show a temporary reaction visual (we'll just re-show tube 2)
+        labArea.classList.remove('hidden');
+        chemical1.parentElement.classList.add('hidden'); // Hide chemical 1
+        
+        // --- NEW REACTION ---
+        chemical2.classList.add('shake');
+        liquid2.style.backgroundColor = currentReactionColor;
+        liquid2.style.boxShadow = `0 0 20px 10px ${currentReactionColor}`;
+        // --- END NEW ---
+
+        setTimeout(() => {
+            labArea.classList.add('hidden');
+            chemical1.parentElement.classList.remove('hidden'); // Un-hide for next time
+            // --- NEW RESET ---
+            chemical2.classList.remove('shake');
+            liquid2.style.boxShadow = 'none';
+            // --- END NEW ---
+            loadQuestion();
+        }, 1500); // Wait for animations
+    }
+
+
+    // Load the question and answers
+        function loadQuestion() {
+            quizQuestion.textContent = currentQuestion.question;
+            answerOptions.innerHTML = ''; // Clear old answers
+
+            currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option.text;
+                button.classList.add('w-full', 'bg-blue-100', 'text-blue-800', 'font-semibold', 'py-3', 'px-4', 'rounded-lg', 'transform', 'transition', 'hover:bg-blue-200', 'hover:scale-105');
+                button.onclick = () => checkAnswer(option.correct);
+                answerOptions.appendChild(button);
+            });
+            
+            quizContent.classList.remove('hidden');
+            
+            // --- ADDED: START TIMER ---
+            if (gameDifficulty === 'medium' || gameDifficulty === 'hard') {
+                startTimer();
+            }
+        }
+
+        // ADDED: Timer function
+        function startTimer() {
+            let duration = (gameDifficulty === 'medium') ? 15000 : 10000; // 15s for medium, 10s for hard
+            let startTime = Date.now();
+            
+            timerContainer.classList.remove('hidden');
+            timerBar.style.width = '100%';
+            timerBar.style.backgroundColor = (gameDifficulty === 'medium') ? '#3b82f6' : '#ef4444'; // Blue or Red
+
+            clearInterval(quizTimerInterval); // Clear old one
+            quizTimerInterval = setInterval(() => {
+                let elapsed = Date.now() - startTime;
+                let remaining = duration - elapsed;
+                
+                if (remaining <= 0) {
+                    clearInterval(quizTimerInterval);
+                    checkAnswer(false); // Time's up!
+                    feedbackMessage.textContent = "Time's up! " + feedbackMessage.textContent; // Add time's up message
+                } else {
+                    timerBar.style.width = (remaining / duration) * 100 + '%';
+                }
+            }, 100);
+        }
+
+        // Check the selected answer
+        function checkAnswer(isCorrect) {
+            clearInterval(quizTimerInterval); // ADDED: Stop the timer
+            timerContainer.classList.add('hidden'); // ADDED: Hide timer
+            
+            // Disable buttons
+            answerOptions.querySelectorAll('button').forEach(btn => btn.disabled = true);
+            
+            if (isCorrect) {
+                feedbackMessage.textContent = "Correct! +100 Coins! 🎉";
+                feedbackMessage.classList.add('text-green-600');
+                feedbackMessage.classList.remove('text-red-600', 'text-yellow-600');
+                coins += 100;
+            } else {
+                // --- NEW DIFFICULTY LOGIC ---
+                if (gameDifficulty === 'easy') {
+                    feedbackMessage.textContent = "Good try! +50 Coins! 👍";
+                    feedbackMessage.classList.add('text-yellow-600');
+                    feedbackMessage.classList.remove('text-red-600', 'text-green-600');
+                    coins += 50;
+                } else if (gameDifficulty === 'medium') {
+                    feedbackMessage.textContent = "Good try! No coins this time. 😕";
+                    feedbackMessage.classList.add('text-red-600');
+                    feedbackMessage.classList.remove('text-green-600', 'text-yellow-600');
+                    // No coins change
+                } else if (gameDifficulty === 'hard') {
+                    feedbackMessage.textContent = "Wrong! -50 Coins! 😬";
+                    feedbackMessage.classList.add('text-red-800'); // Darker red for penalty
+                    feedbackMessage.classList.remove('text-green-600', 'text-yellow-600');
+                    coins -= 50;
+                    if (coins < 0) {
+                        coins = 0; // Don't go into negative coins
+                    }
+                }
+                // --- END NEW LOGIC ---
+            }
+
+            // Update coin display
+            coinDisplay.textContent = `Coins: ${coins} 💰`;
+
+            // Hide question, show continue button
+            quizContent.classList.add('hidden');
+            continueButton.classList.remove('hidden');
+            continueButton.classList.add('pulse'); // Add pulsing animation
+        }
+
+        // Advance to the next level
+        function advanceLevel() {
+            quizModal.classList.add('hidden');
+            
+            questionNumber++; // Advance the question
+
+            // --- NEW RANDOM LEVEL LOGIC ---
+            let newLevel = currentLevel;
+            let levelCount = getCurrentLevelSet().length; // MODIFIED
+            // Keep picking a new level until it's different from the one we just played
+            while (newLevel === currentLevel) {
+                newLevel = Math.floor(Math.random() * levelCount); // MODIFIED
+            }
+            currentLevel = newLevel; // Set the new, random level
+            // --- END NEW LOGIC ---
+
+            // Check if all QUESTIONS are done
+            if (questionNumber >= quizData.length) {
+                // Game Over
+                showMessage(`You finished all ${quizData.length} questions! Final Score: ${coins} Coins! 🏆`);
+                currentLevel = 0;
+                questionNumber = 0;
+                coins = 0;
+            } 
+            // This 'else if' block is no longer needed thanks to the random logic
+            // else if (currentLevel >= levels.length) {
+            //     currentLevel = 0; // Reset obby layout back to level 1
+            // }
+            
+            // Find the start of the next level (or the first platform)
+            // const nextLevelStart = getCurrentLevelSet()[currentLevel][0]; // MODIFIED
+            // playerPosition.x = nextLevelStart.x + (nextLevelStart.w / 2) - 15;
+            // playerPosition.y = nextLevelStart.y;
+            
+            renderLevel(); // Draw the new platforms
+            resetPlayer(); // Place the player at the start of the new level
+        }
+
+        // --- Initial Event Listeners ---
+        startButton.addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            difficultyScreen.classList.remove('hidden'); // Show difficulty screen
+        });
+
+        // ADDED: Helper function and listeners for difficulty
+        function selectDifficulty(difficulty) {
+            gameDifficulty = difficulty;
+            difficultyScreen.classList.add('hidden');
+            colorScreen.classList.remove('hidden');
+        }
+
+        easyButton.addEventListener('click', () => selectDifficulty('easy'));
+        mediumButton.addEventListener('click', () => selectDifficulty('medium'));
+        hardButton.addEventListener('click', () => selectDifficulty('hard'));
+
+        document.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.addEventListener('click', () => {
+                startGame(swatch.dataset.color);
+            });
+        });
+
+        // gameArea.addEventListener('click', movePlayer); // <-- REMOVED
+        continueButton.addEventListener('click', advanceLevel);
+        messageOk.addEventListener('click', () => {
+            messageBox.classList.add('hidden');
+        });
+
+    </script>
 </body>
 </html>
