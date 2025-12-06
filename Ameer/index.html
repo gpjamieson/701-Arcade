@@ -1,101 +1,1331 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Molecule Mogul 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            text-align: center;
+            padding: 0;
             overflow: hidden;
+            background-color: #111;
         }
-
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
+        #game-canvas {
             position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
             pointer-events: none;
         }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        #ui-container > * {
+            pointer-events: auto;
+        }
+        .ui-panel {
+            background-color: rgba(31, 41, 55, 0.9);
+            border: 1px solid #4B5563;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            backdrop-filter: blur(4px);
+        }
+        .instruction-text {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 30;
+            animation: fadeOut 10s forwards;
+            white-space: nowrap;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            95% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        .shop-btn {
+            background: linear-gradient(to bottom, #fcd34d, #f59e0b);
+            color: #78350f;
+            font-weight: bold;
+            border: 2px solid #b45309;
+            box-shadow: 0 4px 0 #b45309;
+            transition: all 0.1s;
+        }
+        .shop-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #b45309;
+        }
+        #pointer-lock-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 98;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            cursor: pointer;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-900">
 
-    <div class="scanline"></div>
+    <div id="pointer-lock-overlay">Click to Play</div>
+    <canvas id="game-canvas"></canvas>
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+    <div id="ui-container" class="p-4 md:p-6 flex flex-col justify-between">
+        <!-- Status Panel -->
+        <div id="status-panel" class="ui-panel p-4 w-64 space-y-2 text-white">
+            <h2 class="text-lg font-bold border-b border-gray-600 pb-1">Status</h2>
+            <div class="flex justify-between items-center h-8">
+                <span class="font-medium">Hand:</span>
+                <span id="holding-text" class="text-blue-300 font-bold">Empty</span>
+            </div>
+            <div class="pt-2">
+                <div class="flex justify-between items-center text-lg mb-1">
+                    <span class="font-medium text-yellow-400">Coins:</span>
+                    <span id="coin-display" class="font-bold px-2 bg-yellow-900 text-yellow-300 rounded border border-yellow-600">0</span>
+                </div>
+                <div class="flex justify-between items-center text-lg">
+                    <span class="font-medium">Score:</span>
+                    <span id="session-score" class="font-bold px-2 bg-gray-700 text-white rounded">0</span>
+                </div>
+                <div class="flex justify-between items-center text-lg">
+                    <span class="font-medium">Best:</span>
+                    <span id="high-score" class="font-bold px-2 bg-green-900 text-green-300 rounded border border-green-600">0</span>
+                </div>
+            </div>
+             <div class="text-xs text-gray-400 mt-2 text-center">Press 'B' to Open Shop</div>
+        </div>
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+        <!-- Instructions -->
+        <div id="crosshair" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-3xl opacity-50" style="display: none;">+</div>
+        <div id="instruction-popup" class="instruction-text">
+            WASD: Move | Space/Shift: Fly | B: Shop | X: Empty Mixer | Look for Gold Atoms!
+        </div>
+        <div id="click-feedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-8 text-white font-bold text-lg" style="opacity: 0; transition: all 0.5s ease;"></div>
+
+        <!-- Shop Panel -->
+        <div id="shop-panel" class="ui-panel p-6 w-96 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white" style="display: none;">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-yellow-400">Molecule Shop</h2>
+                <button id="close-shop" class="text-gray-400 hover:text-white font-bold text-xl">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <!-- Chemical Item -->
+                <div class="flex justify-between items-center bg-gray-800 p-3 rounded border border-gray-600">
+                    <div>
+                        <div class="font-bold text-green-300">Chemical Pack</div>
+                        <div class="text-xs text-gray-400">New ingredients delivered to pallet</div>
+                    </div>
+                    <button id="buy-chemicals" class="shop-btn px-4 py-2 rounded text-sm">100 Coins</button>
+                </div>
+                
+                <!-- Car Item -->
+                <div class="flex justify-between items-center bg-gray-800 p-3 rounded border border-gray-600">
+                    <div>
+                        <div class="font-bold text-cyan-300">Flying Car</div>
+                        <div class="text-xs text-gray-400">Vertical takeoff & electric pulse!</div>
+                    </div>
+                    <button id="buy-car" class="shop-btn px-4 py-2 rounded text-sm">500 Coins</button>
+                </div>
+            </div>
+            <p class="mt-4 text-xs text-center text-gray-400">Mix chemicals to earn more coins!</p>
+        </div>
+
+        <!-- Mixer Panel -->
+        <div id="workbench-panel" class="ui-panel p-6 w-full max-w-lg mx-auto absolute bottom-6 left-1/2 -translate-x-1/2 text-white" style="display: none;">
+            <h2 class="text-2xl font-bold text-center mb-4">Mixer</h2>
+            <div class="grid grid-cols-2 gap-4 mb-3">
+                <div class="bg-gray-700 p-3 rounded-lg border border-gray-500">
+                    <label class="block text-sm font-medium text-gray-200 mb-1">Solvent</label>
+                    <span id="workbench-solvent-text" class="text-lg font-bold">Empty</span>
+                </div>
+                <div class="bg-gray-700 p-3 rounded-lg border border-gray-500">
+                    <label class="block text-sm font-medium text-gray-200 mb-1">Solute</label>
+                    <span id="workbench-solute-text" class="text-lg font-bold">Empty</span>
+                </div>
+            </div>
+            <div id="workbench-result-area" class="text-center p-3 rounded-lg" style="display: none;">
+                <span id="workbench-result-text" class="text-lg font-bold"></span>
+            </div>
         </div>
     </div>
 
+    <script>
+    // Wrapper to ensure libraries are loaded
+    window.addEventListener('load', function() {
+        // === THREE.js Setup ===
+        let scene, camera, renderer, raycaster, clock;
+        let player, cameraPivot, cameraOrbit, playerHand;
+        
+        // --- Game State ---
+        let holdingItem = null;
+        let heldItemMesh = null;
+        let workbenchSolvent = null;
+        let workbenchSolute = null;
+        let isCrafting = false;
+        let hasBoughtChemicals = false;
+        
+        // Economy & Physics
+        let coins = 0;
+        let sessionScore = 0;
+        let highScore = 0;
+        let isDriving = false;
+        let currentVehicle = null;
+        const COINS_KEY = 'moleculeMogulCoins';
+        const HIGH_SCORE_KEY = 'moleculeMogulHighScore';
+        
+        // Fun Stuff
+        const worldCoins = [];
+        const jumpPads = [];
+        const particles = [];
+
+        const tableBounds = { minX: -10, maxX: 10, minZ: -1.25, maxZ: 1.25, topY: 2.0 };
+        const deliveryZone = { x: -15, y: 0.5, z: 0 }; // Where new chemicals spawn
+
+        // Item Data
+        const itemGeometries = {};
+        const itemMaterials = {};
+        const itemTypes = {
+            'water': 'polar_solvent', 'oil': 'nonpolar_solvent', 'salt': 'polar_solute', 'grease': 'nonpolar_solute',
+            'alcohol': 'polar_solvent', 'hexane': 'nonpolar_solvent', 'sugar': 'polar_solute', 'wax': 'nonpolar_solute',
+            // New Items
+            'vinegar': 'polar_solvent', 'turpentine': 'nonpolar_solvent', 
+            'soda': 'polar_solute', 'paint': 'nonpolar_solute'
+        };
+        const itemNames = {
+            'water': '💧 Water', 'oil': '🛢️ Oil', 'salt': '🧂 Salt', 'grease': '🧱 Grease',
+            'alcohol': '🧪 Alcohol', 'hexane': '🔥 Hexane', 'sugar': '🍚 Sugar', 'wax': '🕯️ Wax',
+            'vinegar': '🏺 Vinegar', 'turpentine': '🌲 Turpentine', 'soda': '🧂 Baking Soda', 'paint': '🎨 Paint'
+        };
+
+        // Controls
+        const keys = { w: false, a: false, s: false, d: false, shift: false, ctrl: false, rightMouseDown: false, e: false, space: false, b: false };
+        let moveSpeed = 5; 
+        let cameraPitch = 0; 
+        const playerHeight = 1.0; 
+        let walkPhase = 0; 
+
+        // Physics variables
+        let playerVelocityY = 0;
+        const gravity = -20; 
+        const jumpForce = 8;
+        let isGrounded = true;
+
+        // Audio
+        let synth, noiseSynth, musicSynth, bassSynth, reverb, engineSynth; 
+        let lastStepTime = 0;
+        let audioInitialized = false;
+
+        // UI Elements
+        const ui = {
+            holdingText: document.getElementById('holding-text'),
+            coinDisplay: document.getElementById('coin-display'),
+            sessionScoreText: document.getElementById('session-score'), 
+            highScoreText: document.getElementById('high-score'), 
+            shopPanel: document.getElementById('shop-panel'),
+            workbenchPanel: document.getElementById('workbench-panel'),
+            workbenchSolventText: document.getElementById('workbench-solvent-text'),
+            workbenchSoluteText: document.getElementById('workbench-solute-text'),
+            workbenchResultArea: document.getElementById('workbench-result-area'),
+            workbenchResultText: document.getElementById('workbench-result-text'),
+            clickFeedback: document.getElementById('click-feedback'),
+            pointerLockOverlay: document.getElementById('pointer-lock-overlay'),
+            crosshair: document.getElementById('crosshair'),
+            gameCanvas: document.getElementById('game-canvas'),
+            btnBuyCar: document.getElementById('buy-car'),
+            btnBuyChems: document.getElementById('buy-chemicals'), // New Button
+            btnCloseShop: document.getElementById('close-shop')
+        };
+        
+        const objects = [];
+        const idleCamPos = new THREE.Vector3(0, 0.5, 4);
+        const shiftLockCamPos = new THREE.Vector3(1.5, 0.2, 3);
+        const drivingCamPos = new THREE.Vector3(0, 3, 7);
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111122);
+            scene.fog = new THREE.Fog(0x111122, 10, 80);
+            
+            clock = new THREE.Clock();
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ canvas: ui.gameCanvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+
+            raycaster = new THREE.Raycaster();
+
+            const ambientLight = new THREE.HemisphereLight(0xaaaaee, 0x444444, 1.0);
+            scene.add(ambientLight);
+
+            const spotLight = new THREE.SpotLight(0xffffee, 3.0, 100, Math.PI / 4, 0.5, 2);
+            spotLight.position.set(0, 25, 0);
+            spotLight.target.position.set(0, 0, 0);
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+            scene.add(spotLight);
+            scene.add(spotLight.target);
+
+            createWorld();
+            createPlayer();
+            createCamera();
+            defineItemModels();
+
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('keydown', onKeyDown);
+            window.addEventListener('keyup', onKeyUp);
+            window.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mouseup', onMouseUp);
+            window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+            ui.pointerLockOverlay.addEventListener('click', () => {
+                safeRequestPointerLock();
+                if (!audioInitialized && typeof Tone !== 'undefined') {
+                    Tone.start().then(() => { 
+                        initAudio();
+                        Tone.Transport.start(); 
+                    });
+                    audioInitialized = true;
+                }
+            });
+
+            document.addEventListener('pointerlockchange', onPointerLockChange);
+            document.addEventListener('mousemove', onMouseMove);
+
+            ui.btnBuyCar.addEventListener('click', () => buyItem('car', 500));
+            ui.btnBuyChems.addEventListener('click', () => buyItem('chemicals', 100)); // New Listener
+            ui.btnCloseShop.addEventListener('click', toggleShop);
+            
+            loadCoins();
+            loadHighScore();
+            updateHoldingUI();
+            updateWorkbenchUI();
+            updateCoinUI();
+            updateScoreUI();
+            animate();
+        }
+
+        function safeRequestPointerLock() {
+            if (!renderer || !renderer.domElement) return;
+            const promise = renderer.domElement.requestPointerLock();
+            if (promise) {
+                promise.catch(err => {});
+            }
+        }
+
+        function initAudio() {
+            synth = new Tone.Synth({
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
+            }).toDestination();
+        
+            noiseSynth = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.001, decay: 0.05, sustain: 0 }
+            }).toDestination();
+            noiseSynth.volume.value = -10;
+
+            engineSynth = new Tone.Oscillator({
+                type: "sawtooth",
+                frequency: 50,
+                volume: -20
+            }).toDestination();
+
+            reverb = new Tone.Reverb(2.5).toDestination(); 
+            reverb.wet.value = 0.4; 
+
+            musicSynth = new Tone.Synth({
+                oscillator: { type: 'triangle8' }, 
+                envelope: { attack: 0.1, decay: 0.2, sustain: 0.2, release: 1 }
+            }).connect(reverb);
+            musicSynth.volume.value = -12; 
+
+            bassSynth = new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.05, decay: 0.1, sustain: 0.5, release: 0.8 }
+            }).connect(reverb);
+            bassSynth.volume.value = -10;
+
+            const melody = ['C4', 'Eb4', 'G4', 'Bb4', 'G4', 'Eb4', null, 'C4', 'Eb4', 'G4', 'F4', 'Eb4', 'G4', 'F4', 'Eb4', 'C4'];
+            new Tone.Sequence((time, note) => { if (note) musicSynth.triggerAttackRelease(note, '8n', time); }, melody, '4n').start(0);
+
+            const bassline = ['C2', null, null, 'G1', 'Eb2', null, 'F1', null, 'C2', 'G1', 'Eb2', 'F1', 'C2', null, 'G1', null];
+            new Tone.Sequence((time, note) => { if (note) bassSynth.triggerAttackRelease(note, '2n', time); }, bassline, '2n').start(0);
+            
+            Tone.Transport.bpm.value = 80;
+        }
+
+        function createStudTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4a7d29'; ctx.fillRect(0,0,64,64);
+            ctx.fillStyle = '#5a8d39'; ctx.beginPath(); ctx.arc(32,32,20,0,Math.PI*2); ctx.fill();
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(25,25);
+            return tex;
+        }
+
+        function createAsphaltTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#222222'; ctx.fillRect(0,0,64,64);
+            for(let i=0; i<100; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? '#333' : '#111';
+                ctx.fillRect(Math.random()*64, Math.random()*64, 2, 2);
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping; 
+            return tex;
+        }
+
+        function createLabelTexture(text, width=128, height=64, fontSize=30) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#eeeeee'; ctx.fillRect(0,0,width,height);
+            ctx.fillStyle = 'black'; ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, width/2, height/2);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createWoodTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#8B4513'; ctx.fillRect(0,0,64,128);
+            ctx.strokeStyle = '#5A2A0A'; ctx.lineWidth = 2;
+            for(let i=0;i<6;i++){ ctx.beginPath(); ctx.moveTo(Math.random()*64,0); ctx.lineTo(Math.random()*64,128); ctx.stroke();}
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(10,10);
+            return tex;
+        }
+        
+        function defineItemModels() {
+            // Geometries
+            const sphere = new THREE.SphereGeometry(0.15, 16, 16);
+            const box = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            itemGeometries['water'] = sphere; itemGeometries['alcohol'] = sphere; itemGeometries['vinegar'] = sphere;
+            itemGeometries['oil'] = sphere; itemGeometries['hexane'] = sphere; itemGeometries['turpentine'] = sphere;
+            itemGeometries['salt'] = box; itemGeometries['sugar'] = box; itemGeometries['soda'] = box;
+            itemGeometries['grease'] = box; itemGeometries['wax'] = box; itemGeometries['paint'] = box;
+
+            // Materials
+            itemMaterials['water'] = new THREE.MeshPhongMaterial({ color: 0x3399FF, transparent: true, opacity: 0.8 });
+            itemMaterials['alcohol'] = new THREE.MeshPhongMaterial({ color: 0x40e0d0, transparent: true, opacity: 0.8 });
+            itemMaterials['vinegar'] = new THREE.MeshPhongMaterial({ color: 0x8b4513, transparent: true, opacity: 0.7 }); // Brown
+            itemMaterials['oil'] = new THREE.MeshStandardMaterial({ color: 0x3d2b1f, metalness: 0.2, roughness: 0.1 });
+            itemMaterials['hexane'] = new THREE.MeshPhongMaterial({ color: 0xdb5858, transparent: true, opacity: 0.8 });
+            itemMaterials['turpentine'] = new THREE.MeshPhongMaterial({ color: 0xd4cd96, transparent: true, opacity: 0.6 }); // Yellowish
+            
+            itemMaterials['salt'] = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+            itemMaterials['sugar'] = new THREE.MeshStandardMaterial({ color: 0xfffae8, roughness: 0.3 });
+            itemMaterials['soda'] = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9 }); // White powder
+            itemMaterials['grease'] = new THREE.MeshStandardMaterial({ color: 0x5a5a4d, roughness: 0.8 });
+            itemMaterials['wax'] = new THREE.MeshStandardMaterial({ color: 0xf0e68c, roughness: 0.5 });
+            itemMaterials['paint'] = new THREE.MeshStandardMaterial({ color: 0xff00ff, roughness: 0.1 }); // Colorful paint
+        }
+
+        function createWorld() {
+            const studTexture = createStudTexture();
+            const groundMat = new THREE.MeshStandardMaterial({ map: studTexture, roughness: 0.8, metalness: 0.1 });
+            const groundGeo = new THREE.PlaneGeometry(100, 100);
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            ground.name = "ground";
+            scene.add(ground);
+            
+            createRaceTrack();
+            createLabTable();
+            createDeliveryZone(); // NEW
+            spawnWorldCoins(); 
+            createJumpPads(); 
+
+            const tableY = tableBounds.topY;
+
+            createChemistryBottle('water', 'H₂O', 0x3399FF, new THREE.Vector3(-8, tableY, 0));
+            createChemistryBottle('alcohol', 'Alcohol', 0x40e0d0, new THREE.Vector3(-6, tableY, 0));
+            createPetriDish('salt', 'NaCl', 0xfafafa, new THREE.Vector3(-4, tableY, 0));
+            createPetriDish('sugar', 'Sugar', 0xfafae0, new THREE.Vector3(-2, tableY, 0));
+
+            createChemistryBottle('oil', 'OIL', 0x3d2b1f, new THREE.Vector3(2, tableY, 0));
+            createChemistryBottle('hexane', 'Hexane', 0xdb5858, new THREE.Vector3(4, tableY, 0));
+            createPetriDish('grease', 'Grease', 0x5a5a4d, new THREE.Vector3(6, tableY, 0));
+            createPetriDish('wax', 'Wax', 0xf0e68c, new THREE.Vector3(8, tableY, 0));
+
+            // Workbench
+            const wbGlassMat = new THREE.MeshPhongMaterial({ color: 0x9a70c9, transparent: true, opacity: 0.5, shininess: 90 });
+            const wbBody = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.75, 1.5, 32), wbGlassMat);
+            wbBody.position.y = 0.75; wbBody.castShadow = true;
+            const wbNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.75, 32), wbGlassMat);
+            wbNeck.position.y = 1.875;
+            const wbLabel = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25), new THREE.MeshBasicMaterial({ map: createLabelTexture("MIXER", 128, 64, 30) }));
+            wbLabel.position.set(0, 1, 0.76);
+            
+            const workbench = new THREE.Group();
+            workbench.add(wbBody); workbench.add(wbNeck); workbench.add(wbLabel);
+            workbench.name = "workbench";
+            workbench.position.set(0, tableY, 0);
+            scene.add(workbench);
+            objects.push(workbench);
+        }
+
+        // --- NEW: Delivery Logic ---
+        function createDeliveryZone() {
+            const geo = new THREE.BoxGeometry(6, 0.5, 6);
+            const tex = createWoodTexture();
+            tex.repeat.set(2,2);
+            const mat = new THREE.MeshStandardMaterial({ map: tex, color: 0x886644 });
+            const pallet = new THREE.Mesh(geo, mat);
+            pallet.position.set(deliveryZone.x, 0.25, deliveryZone.z);
+            pallet.receiveShadow = true;
+            scene.add(pallet);
+            
+            // Label
+            const labelGeo = new THREE.PlaneGeometry(4, 1);
+            const labelMat = new THREE.MeshBasicMaterial({ map: createLabelTexture("DELIVERIES", 256, 64, 40) });
+            const label = new THREE.Mesh(labelGeo, labelMat);
+            label.position.set(deliveryZone.x, 0.51, deliveryZone.z);
+            label.rotation.x = -Math.PI / 2;
+            scene.add(label);
+        }
+
+        function deliverChemicals() {
+            if (hasBoughtChemicals) {
+                showClickFeedback("Already bought pack!");
+                return;
+            }
+            hasBoughtChemicals = true;
+            
+            const y = 0.5; // On pallet (pallet is 0.5 high, surface at 0.5)
+            // Spawn 4 new items
+            createChemistryBottle('vinegar', 'Vinegar', 0x8b4513, new THREE.Vector3(deliveryZone.x - 2, y, deliveryZone.z - 2));
+            createPetriDish('soda', 'Soda', 0xeeeeee, new THREE.Vector3(deliveryZone.x - 2, y, deliveryZone.z + 2));
+            
+            createChemistryBottle('turpentine', 'Turps', 0xd4cd96, new THREE.Vector3(deliveryZone.x + 2, y, deliveryZone.z - 2));
+            createPetriDish('paint', 'Paint', 0xff00ff, new THREE.Vector3(deliveryZone.x + 2, y, deliveryZone.z + 2));
+            
+            // Play sound
+            if (synth) synth.triggerAttackRelease("C4", "4n");
+            if (synth) synth.triggerAttackRelease("E4", "4n", "+0.1");
+            if (synth) synth.triggerAttackRelease("G4", "4n", "+0.2");
+        }
+        // --- End Delivery Logic ---
+
+        function createRaceTrack() {
+            const asphaltTex = createAsphaltTexture();
+            const roadMat = new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.9, color: 0x555555 });
+            const trackGeo = new THREE.RingGeometry(20, 30, 64);
+            const track = new THREE.Mesh(trackGeo, roadMat);
+            track.rotation.x = -Math.PI / 2;
+            track.position.y = 0.02; 
+            track.receiveShadow = true;
+            scene.add(track);
+        }
+
+        function createLabTable() {
+            const woodTexture = createWoodTexture();
+            const tableMat = new THREE.MeshStandardMaterial({ map: woodTexture });
+            const tableTop = new THREE.Mesh(new THREE.BoxGeometry(tableBounds.maxX - tableBounds.minX, 1, tableBounds.maxZ - tableBounds.minZ), tableMat);
+            tableTop.position.y = tableBounds.topY - 0.5; tableTop.receiveShadow = true; tableTop.name = "ground";
+            scene.add(tableTop);
+
+            const legHeight = tableBounds.topY - 1;
+            const legGeo = new THREE.BoxGeometry(2, legHeight, 2);
+            [
+                {x:tableBounds.minX+2, z:tableBounds.minZ+2}, {x:tableBounds.maxX-2, z:tableBounds.minZ+2},
+                {x:tableBounds.minX+2, z:tableBounds.maxZ-2}, {x:tableBounds.maxX-2, z:tableBounds.maxZ-2}
+            ].forEach(pos => {
+                const leg = new THREE.Mesh(legGeo, tableMat);
+                leg.position.set(pos.x, legHeight/2, pos.z);
+                scene.add(leg);
+            });
+        }
+
+        function createChemistryBottle(name, label, color, position) {
+            const group = new THREE.Group(); group.name = name;
+            const glassMat = new THREE.MeshPhongMaterial({ color: 0xbbbbff, transparent: true, opacity: 0.3 });
+            
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.25, 32), glassMat); body.position.y = 0.625; body.castShadow = true; group.add(body);
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.125, 0.375, 32), glassMat); neck.position.y = 1.4375; group.add(neck);
+            const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.475, 0.475, 1, 32), new THREE.MeshStandardMaterial({ color: color, roughness: 0.1 })); liquid.position.y = 0.5; group.add(liquid);
+            const lbl = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25), new THREE.MeshBasicMaterial({ map: createLabelTexture(label, 128, 64, 30) })); lbl.position.set(0, 0.625, 0.51); group.add(lbl);
+
+            group.position.copy(position); scene.add(group); objects.push(group);
+        }
+
+        function createPetriDish(name, label, color, position) {
+            const group = new THREE.Group(); group.name = name;
+            const glassMat = new THREE.MeshPhongMaterial({ color: 0xeeeeff, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+            
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.125, 32), glassMat); base.position.y = 0.0625; base.castShadow = true; group.add(base);
+            const content = new THREE.Mesh(new THREE.CylinderGeometry(0.725, 0.725, 0.05, 32), new THREE.MeshStandardMaterial({ color: color, roughness: 0.8 })); content.position.y = 0.0375; group.add(content);
+            const lbl = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.125), new THREE.MeshBasicMaterial({ map: createLabelTexture(label, 128, 32, 24) })); lbl.position.set(0, 0.0625, 0.76); lbl.rotation.x = -0.1; group.add(lbl);
+
+            group.position.copy(position); scene.add(group); objects.push(group);
+        }
+
+        // ... existing player/camera/audio/fun/physics functions ...
+        function createPlayer() {
+            player = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0077FF });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1, playerHeight * 2, 0.5), bodyMat); body.castShadow = true; player.add(body);
+
+            const armGeo = new THREE.BoxGeometry(0.35, 1.8, 0.4);
+            const leftArm = new THREE.Mesh(armGeo, bodyMat); leftArm.position.set(-0.7, 0, 0); leftArm.castShadow = true; player.add(leftArm);
+            const rightArm = new THREE.Mesh(armGeo, bodyMat); rightArm.position.set(0.7, 0, 0); rightArm.castShadow = true; player.add(rightArm);
+
+            const legMat = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
+            const legGeo = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+            const leftLeg = new THREE.Mesh(legGeo, legMat); leftLeg.position.set(-0.3, -1.1, 0); leftLeg.castShadow = true; player.add(leftLeg);
+            const rightLeg = new THREE.Mesh(legGeo, legMat); rightLeg.position.set(0.3, -1.1, 0); rightLeg.castShadow = true; player.add(rightLeg);
+
+            player.leftLeg = leftLeg; player.rightLeg = rightLeg; player.leftArm = leftArm; player.rightArm = rightArm;
+
+            playerHand = new THREE.Group(); playerHand.position.set(0, -0.8, 0.3); rightArm.add(playerHand);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshStandardMaterial({ color: 0xffbe98 })); head.position.set(0, 1.3, 0); head.castShadow = true; player.add(head);
+            const hair = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.3, 0.65), new THREE.MeshStandardMaterial({ color: 0x4a2a0a })); hair.position.set(0, 1.65, 0); hair.castShadow = true; player.add(hair);
+            const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0xff0000 })); hat.position.set(0, 2.0, 0); hat.castShadow = true; player.add(hat);
+
+            player.position.set(0, 1.7, 10);
+            scene.add(player);
+        }
+
+        function createCamera() {
+            cameraOrbit = new THREE.Group(); scene.add(cameraOrbit);
+            cameraPivot = new THREE.Group(); cameraOrbit.add(cameraPivot);
+            cameraPivot.add(camera);
+            camera.position.copy(idleCamPos); camera.lookAt(cameraPivot.position);
+        }
+
+        function loadCoins() {
+            const stored = localStorage.getItem(COINS_KEY);
+            coins = stored ? parseInt(stored, 10) : 0;
+            updateCoinUI();
+        }
+
+        function loadHighScore() {
+            const storedScore = localStorage.getItem(HIGH_SCORE_KEY);
+            highScore = storedScore ? parseInt(storedScore, 10) : 0;
+            updateScoreUI();
+        }
+
+        function updateScoreUI() {
+            if(ui.sessionScoreText) ui.sessionScoreText.textContent = sessionScore;
+            if(ui.highScoreText) ui.highScoreText.textContent = highScore;
+        }
+
+        function updateHighScore() {
+            if (sessionScore > highScore) {
+                highScore = sessionScore;
+                localStorage.setItem(HIGH_SCORE_KEY, highScore.toString());
+            }
+            updateScoreUI();
+        }
+
+        function updateCoinUI() {
+            ui.coinDisplay.textContent = coins;
+        }
+
+        function saveCoins() {
+            localStorage.setItem(COINS_KEY, coins.toString());
+            updateCoinUI();
+        }
+
+        function toggleShop() {
+            if (ui.shopPanel.style.display === 'none') {
+                ui.shopPanel.style.display = 'block';
+                document.exitPointerLock();
+            } else {
+                ui.shopPanel.style.display = 'none';
+                safeRequestPointerLock(); // Safe Lock
+            }
+        }
+
+        function buyItem(type, cost) {
+            if (coins >= cost) {
+                if (type === 'chemicals' && hasBoughtChemicals) {
+                    showClickFeedback("Already bought pack!");
+                    return;
+                }
+                
+                coins -= cost;
+                saveCoins();
+                showClickFeedback(`Bought ${type}!`);
+                if(synth) synth.triggerAttackRelease("C6", "8n");
+
+                if (type === 'car') spawnCar();
+                if (type === 'chemicals') deliverChemicals();
+            } else {
+                showClickFeedback("Not enough coins!");
+                if(synth) synth.triggerAttackRelease("C3", "8n");
+            }
+        }
+
+        function spawnCar() {
+            const carGroup = new THREE.Group();
+            carGroup.name = "car";
+            
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.9, roughness: 0.1 });
+            const neonMat = new THREE.MeshStandardMaterial({ color: 0x00FFFF, emissive: 0x00FFFF, emissiveIntensity: 0.8 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.0, opacity: 0.7, transparent: true });
+
+            const chassisGeo = new THREE.BoxGeometry(2.2, 0.5, 4.5);
+            const chassis = new THREE.Mesh(chassisGeo, bodyMat);
+            chassis.position.y = 0.5;
+            chassis.castShadow = true;
+            carGroup.add(chassis);
+
+            const stripGeo = new THREE.BoxGeometry(2.3, 0.1, 4.0);
+            const strip = new THREE.Mesh(stripGeo, neonMat);
+            strip.position.y = 0.5;
+            strip.name = "neonPulse";
+            carGroup.add(strip);
+
+            const cabinGeo = new THREE.BoxGeometry(1.8, 0.6, 2.5);
+            const cabin = new THREE.Mesh(cabinGeo, glassMat);
+            cabin.position.y = 1.0;
+            cabin.castShadow = true;
+            carGroup.add(cabin);
+
+            const hlGeo = new THREE.BoxGeometry(0.8, 0.1, 0.1);
+            const hlL = new THREE.Mesh(hlGeo, neonMat); hlL.position.set(-0.6, 0.5, -2.26); carGroup.add(hlL);
+            const hlR = new THREE.Mesh(hlGeo, neonMat); hlR.position.set(0.6, 0.5, -2.26); carGroup.add(hlR);
+
+            const tlMat = new THREE.MeshStandardMaterial({ color: 0xFF0055, emissive: 0xFF0055, emissiveIntensity: 0.8 });
+            const tlGeo = new THREE.BoxGeometry(2.0, 0.1, 0.1);
+            const tl = new THREE.Mesh(tlGeo, tlMat); tl.position.set(0, 0.6, 2.26); carGroup.add(tl);
+
+            const padGeo = new THREE.CylinderGeometry(0.4, 0.3, 0.2, 8);
+            const padMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const glowRingGeo = new THREE.TorusGeometry(0.3, 0.05, 8, 16);
+            
+            const wheelPositions = [
+                {x: -1.2, z: 1.5}, {x: 1.2, z: 1.5},
+                {x: -1.2, z: -1.5}, {x: 1.2, z: -1.5}
+            ];
+            
+            wheelPositions.forEach(pos => {
+                const padGroup = new THREE.Group();
+                const pad = new THREE.Mesh(padGeo, padMat);
+                const glow = new THREE.Mesh(glowRingGeo, neonMat);
+                glow.rotation.x = Math.PI / 2;
+                glow.position.y = -0.1;
+                glow.name = "neonPulse";
+                
+                padGroup.add(pad);
+                padGroup.add(glow);
+                padGroup.position.set(pos.x, 0.2, pos.z);
+                carGroup.add(padGroup);
+            });
+
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(player.quaternion);
+            const spawnPos = player.position.clone().add(forward.multiplyScalar(5));
+            spawnPos.y = Math.max(spawnPos.y, 0.5);
+
+            carGroup.position.copy(spawnPos);
+            carGroup.lookAt(player.position); 
+            scene.add(carGroup);
+            objects.push(carGroup);
+        }
+
+        // ... existing physics/anim loops ...
+        function enterVehicle(vehicle) {
+            isDriving = true;
+            currentVehicle = vehicle;
+            player.visible = false;
+            showClickFeedback("Driving Mode (Space: Up, Shift: Down)");
+            if (engineSynth) engineSynth.start();
+        }
+
+        function exitVehicle() {
+            if (!currentVehicle) return;
+            const exitPos = currentVehicle.position.clone();
+            exitPos.x += 2.5; 
+            player.position.copy(exitPos);
+            player.visible = true;
+            isDriving = false;
+            currentVehicle = null;
+            if (engineSynth) engineSynth.stop();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function onPointerLockChange() {
+            if (document.pointerLockElement === renderer.domElement) {
+                ui.pointerLockOverlay.style.display = 'none';
+                if (!isDriving) ui.crosshair.style.display = 'block';
+            } else {
+                ui.crosshair.style.display = 'none';
+                if (ui.shopPanel.style.display === 'block') {
+                    ui.pointerLockOverlay.style.display = 'none';
+                } else {
+                    ui.pointerLockOverlay.style.display = 'flex';
+                }
+            }
+        }
+        
+        function onKeyDown(event) {
+            if (ui.shopPanel.style.display === 'block') {
+                if (event.code === 'KeyB' || event.code === 'Escape') toggleShop();
+                return;
+            }
+
+            if (document.pointerLockElement !== renderer.domElement) return;
+
+            switch(event.code) {
+                case 'KeyW': keys.w = true; break;
+                case 'KeyA': keys.a = true; break;
+                case 'KeyS': keys.s = true; break;
+                case 'KeyD': keys.d = true; break;
+                case 'ShiftLeft': keys.shift = true; break;
+                case 'ControlLeft': keys.ctrl = true; break;
+                case 'Space': keys.space = true; break;
+                case 'KeyB': toggleShop(); break; 
+                case 'KeyX': emptyMixer(); break; 
+                case 'KeyE': 
+                    if (!keys.e) { 
+                        keys.e = true; 
+                        if (isDriving) exitVehicle();
+                        else interact();
+                    }
+                    break;
+            }
+        }
+        
+        function onKeyUp(event) {
+            switch(event.code) {
+                case 'KeyW': keys.w = false; break;
+                case 'KeyA': keys.a = false; break;
+                case 'KeyS': keys.s = false; break;
+                case 'KeyD': keys.d = false; break;
+                case 'ShiftLeft': keys.shift = false; break;
+                case 'ControlLeft': keys.ctrl = false; break;
+                case 'Space': keys.space = false; break;
+                case 'KeyE': keys.e = false; break;
+            }
+        }
+
+        function onMouseDown(event) { if (event.button === 2) keys.rightMouseDown = true; }
+        function onMouseUp(event) { if (event.button === 2) keys.rightMouseDown = false; }
+        
+        function onMouseMove(event) {
+            if (document.pointerLockElement !== renderer.domElement) return;
+            
+            const sensitivity = 0.002;
+
+            if (isDriving && currentVehicle) {
+                cameraOrbit.rotateY(-event.movementX * sensitivity);
+                cameraPitch -= event.movementY * sensitivity;
+                cameraPitch = THREE.MathUtils.clamp(cameraPitch, -0.5, 1.0);
+                cameraPivot.rotation.x = cameraPitch;
+                return;
+            }
+
+            const isCameraLocked = keys.shift || keys.rightMouseDown;
+            cameraPitch -= event.movementY * sensitivity;
+            cameraPitch = THREE.MathUtils.clamp(cameraPitch, -Math.PI / 2 + 0.1, Math.PI / 2 - 0.1);
+            cameraPivot.rotation.x = cameraPitch;
+
+            if (isCameraLocked) {
+                player.rotateY(-event.movementX * sensitivity);
+            } else {
+                cameraOrbit.rotateY(-event.movementX * sensitivity);
+            }
+        }
+
+        function interact() {
+            const isCameraLocked = keys.shift || keys.rightMouseDown;
+            let targetObj = null;
+
+            if (isCameraLocked) {
+                player.visible = false;
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const intersects = raycaster.intersectObjects(scene.children, true);
+                player.visible = true;
+                if (intersects.length > 0 && intersects[0].distance < 15) {
+                    let obj = intersects[0].object;
+                    while (obj.parent && !obj.name) obj = obj.parent;
+                    targetObj = obj;
+                }
+            } else {
+                let closestDist = Infinity;
+                const maxDist = 8;
+                for (let obj of objects) {
+                    const dist = player.position.distanceTo(obj.position);
+                    if (dist < maxDist && dist < closestDist) {
+                        closestDist = dist;
+                        targetObj = obj;
+                    }
+                }
+            }
+
+            if (targetObj) {
+                if (targetObj.name === 'car') {
+                    enterVehicle(targetObj);
+                } else {
+                    handleInteraction(targetObj.name);
+                }
+            } else {
+                dropItem();
+            }
+        }
+
+        function handleInteraction(name) {
+            if (isCrafting && name === 'workbench') {
+                showClickFeedback("Crafting in progress...");
+                return;
+            }
+            if (['water','salt','oil','grease','alcohol','hexane','sugar','wax', 'vinegar', 'soda', 'turpentine', 'paint'].includes(name)) {
+                pickUpItem(name);
+            } else if (name === 'workbench') {
+                interactWorkbench();
+            } else if (name === 'ground') {
+                dropItem();
+            } else {
+                dropItem(); 
+            }
+        }
+
+        function pickUpItem(name) {
+            if (holdingItem) { showClickFeedback("Full hands!"); return; }
+            holdingItem = name;
+            showClickFeedback(`Got ${itemNames[name]}`);
+            if (synth) synth.triggerAttackRelease("C5", "8n", Tone.now());
+            updateHoldingUI();
+            updateHeldItemModel();
+        }
+
+        function dropItem() {
+            if (!holdingItem) return;
+            showClickFeedback(`Dropped ${itemNames[holdingItem]}`);
+            holdingItem = null;
+            if (synth) synth.triggerAttackRelease("C4", "8n", Tone.now());
+            updateHoldingUI();
+            updateHeldItemModel();
+        }
+
+        function interactWorkbench() {
+            if (isCrafting) return;
+            ui.workbenchPanel.style.display = 'block';
+            const itemType = itemTypes[holdingItem];
+            const itemRole = itemType ? itemType.split('_')[1] : null;
+
+            if (holdingItem) {
+                if (itemRole === 'solvent') {
+                    if (workbenchSolvent) { let t = workbenchSolvent; workbenchSolvent = holdingItem; holdingItem = t; showClickFeedback("Swapped"); }
+                    else { workbenchSolvent = holdingItem; holdingItem = null; showClickFeedback("Placed Solvent"); }
+                } else if (itemRole === 'solute') {
+                    if (workbenchSolute) { let t = workbenchSolute; workbenchSolute = holdingItem; holdingItem = t; showClickFeedback("Swapped"); }
+                    else { workbenchSolute = holdingItem; holdingItem = null; showClickFeedback("Placed Solute"); }
+                }
+            } else {
+                if (workbenchSolute) { holdingItem = workbenchSolute; workbenchSolute = null; showClickFeedback("Took Solute"); }
+                else if (workbenchSolvent) { holdingItem = workbenchSolvent; workbenchSolvent = null; showClickFeedback("Took Solvent"); }
+                else showClickFeedback("Workbench Empty");
+            }
+            if (synth) synth.triggerAttackRelease("E4", "8n", Tone.now());
+            updateHoldingUI(); updateHeldItemModel(); updateWorkbenchUI();
+            checkCraft();
+        }
+
+        function emptyMixer() {
+            if (workbenchSolvent || workbenchSolute) {
+                workbenchSolvent = null;
+                workbenchSolute = null;
+                isCrafting = false; 
+                showClickFeedback("Mixer Emptied!");
+                if (synth) synth.triggerAttackRelease("G2", "8n", Tone.now());
+                updateWorkbenchUI();
+            } else {
+                showClickFeedback("Mixer already empty");
+            }
+        }
+
+        function checkCraft() {
+            if (workbenchSolvent && workbenchSolute && !isCrafting) {
+                isCrafting = true;
+                const solventPol = itemTypes[workbenchSolvent].split('_')[0];
+                const solutePol = itemTypes[workbenchSolute].split('_')[0];
+                let success = solventPol === solutePol;
+                let explanation = success 
+                    ? `Success! +100 Coins! Like dissolves like.` 
+                    : `Failed! Like dissolves like.`;
+
+                if (success) {
+                    coins += 100; // Economy
+                    saveCoins();
+                    sessionScore++;
+                    updateHighScore();
+                    showWorkbenchResult(true, explanation);
+                    
+                    // NEW: Confetti
+                    createConfetti();
+                    
+                    setTimeout(() => { workbenchSolvent=null; workbenchSolute=null; isCrafting=false; updateWorkbenchUI(); }, 3000);
+                } else {
+                    showWorkbenchResult(false, explanation);
+                    setTimeout(() => { isCrafting=false; updateWorkbenchUI(); }, 3000);
+                }
+            }
+        }
+        
+        function showWorkbenchResult(success, explanation) {
+            ui.workbenchResultArea.style.display = 'block';
+            ui.workbenchResultArea.className = success ? "text-center p-3 rounded-lg bg-green-100 text-green-800 border border-green-300" : "text-center p-3 rounded-lg bg-red-100 text-red-800 border border-red-300";
+            ui.workbenchResultText.textContent = explanation;
+            if (success && synth) synth.triggerAttackRelease("G5", "4n", Tone.now());
+            else if (synth) synth.triggerAttackRelease("C3", "4n", Tone.now());
+        }
+
+        // ... fun elements update logic ...
+        function spawnWorldCoins() {
+            for(let i=0; i<20; i++) {
+                const angle = (i / 20) * Math.PI * 2;
+                const radius = 25;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                createWorldCoin(x, 4, z); 
+                createWorldCoin(x, 15, z); 
+            }
+            createWorldCoin(0, tableBounds.topY + 1.5, 0);
+        }
+
+        function createWorldCoin(x, y, z) {
+            const geo = new THREE.SphereGeometry(0.5, 16, 16); 
+            const mat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.9, roughness: 0.1, emissive: 0xAA6600, emissiveIntensity: 0.2 });
+            const coin = new THREE.Mesh(geo, mat);
+            coin.position.set(x, y, z);
+            scene.add(coin);
+            worldCoins.push(coin);
+        }
+
+        function createJumpPads() {
+            const padPositions = [
+                {x: 18, z: 18}, {x: -18, z: 18},
+                {x: 18, z: -18}, {x: -18, z: -18}
+            ];
+            
+            const padGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.2, 32);
+            const padMat = new THREE.MeshPhongMaterial({ color: 0x00FF00, transparent: true, opacity: 0.8 });
+            
+            padPositions.forEach(pos => {
+                const pad = new THREE.Mesh(padGeo, padMat);
+                pad.position.set(pos.x, 0.1, pos.z);
+                scene.add(pad);
+                jumpPads.push(pad);
+            });
+        }
+        
+        function updateFunElements(deltaTime) {
+            worldCoins.forEach((coin, index) => {
+                coin.rotation.y += 2 * deltaTime;
+                const playerPos = isDriving && currentVehicle ? currentVehicle.position : player.position;
+                if(playerPos.distanceTo(coin.position) < 2) {
+                    scene.remove(coin);
+                    worldCoins.splice(index, 1);
+                    coins += 10;
+                    saveCoins();
+                    showClickFeedback("+10 Coins!");
+                    if(synth) synth.triggerAttackRelease("E6", "16n");
+                }
+            });
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.mesh.position.addScaledVector(p.velocity, deltaTime);
+                p.velocity.y -= 9.8 * deltaTime; 
+                p.life -= deltaTime;
+                p.mesh.rotation.x += deltaTime * 5;
+                p.mesh.rotation.y += deltaTime * 5;
+                
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function createConfetti() {
+            const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff];
+            const origin = new THREE.Vector3(0, tableBounds.topY + 2, 0); 
+            
+            for (let i = 0; i < 30; i++) {
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const geo = new THREE.BoxGeometry(0.2, 0.2, 0.05);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(origin);
+                
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 10,
+                    (Math.random()) * 10 + 5,
+                    (Math.random() - 0.5) * 10
+                );
+                
+                scene.add(mesh);
+                particles.push({ mesh, velocity, life: 2.0 });
+            }
+        }
+
+        function updatePlayerMovement(deltaTime) {
+            if (document.pointerLockElement !== renderer.domElement) return;
+
+            const pPos = isDriving && currentVehicle ? currentVehicle.position : player.position;
+            
+            for(let pad of jumpPads) {
+                if (pPos.distanceTo(pad.position) < 1.5 && pPos.y < pad.position.y + 1.0) {
+                    if (isDriving && currentVehicle) {
+                        currentVehicle.position.y += 20 * deltaTime; 
+                    } else {
+                        playerVelocityY = 25; 
+                        isGrounded = false;
+                        if(synth) synth.triggerAttackRelease("C6", "16n");
+                    }
+                }
+            }
+
+            if (isDriving && currentVehicle) {
+                const flySpeed = 30;
+                const turnSpeed = 2.0;
+                const verticalSpeed = 15;
+                let speed = 0;
+
+                if (keys.w) speed = flySpeed;
+                if (keys.s) speed = -flySpeed;
+
+                if (engineSynth) {
+                    const baseFreq = 50; 
+                    const pitchMod = Math.abs(speed) / flySpeed * 100;
+                    if(engineSynth.detune) engineSynth.detune.rampTo(pitchMod * 10, 0.1);
+                }
+
+                const moveDist = speed * deltaTime;
+                currentVehicle.translateZ(moveDist);
+
+                if (speed !== 0 || keys.space || keys.shift) { 
+                    if (keys.a) currentVehicle.rotateY(turnSpeed * deltaTime);
+                    if (keys.d) currentVehicle.rotateY(-turnSpeed * deltaTime);
+                }
+                
+                if (keys.space) {
+                    currentVehicle.position.y += verticalSpeed * deltaTime;
+                }
+                if (keys.shift) {
+                    currentVehicle.position.y -= verticalSpeed * deltaTime;
+                }
+
+                const minH = 0.5;
+                if (currentVehicle.position.y < minH) currentVehicle.position.y = minH;
+
+                cameraOrbit.position.copy(currentVehicle.position);
+                camera.position.lerp(drivingCamPos, deltaTime * 5);
+                camera.lookAt(currentVehicle.position);
+                
+                return; 
+            }
+
+            const isCameraLocked = keys.shift || keys.rightMouseDown;
+            const isMoving = keys.w || keys.a || keys.s || keys.d;
+            
+            const moveDirection = new THREE.Vector3();
+            if (keys.w) moveDirection.z -= 1;
+            if (keys.s) moveDirection.z += 1;
+            if (keys.a) moveDirection.x -= 1;
+            if (keys.d) moveDirection.x += 1;
+
+            if (moveDirection.lengthSq() > 0) {
+                moveDirection.normalize();
+                const cameraYaw = new THREE.Quaternion();
+                if (isCameraLocked) cameraYaw.copy(player.quaternion);
+                else cameraYaw.copy(cameraOrbit.quaternion);
+                moveDirection.applyQuaternion(cameraYaw);
+
+                const currentMoveSpeed = keys.ctrl ? moveSpeed * 1.75 : moveSpeed;
+                player.position.addScaledVector(moveDirection, currentMoveSpeed * deltaTime);
+
+                if (!isCameraLocked) {
+                    const targetAngle = Math.atan2(moveDirection.x, moveDirection.z);
+                    const targetRotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle);
+                    player.quaternion.slerp(targetRotation, deltaTime * 10.0);
+                }
+            }
+
+            if (!isGrounded) playerVelocityY += gravity * deltaTime;
+            if (keys.space && isGrounded) {
+                playerVelocityY = jumpForce;
+                isGrounded = false;
+                if (synth) synth.triggerAttackRelease("A4", "8n", Tone.now());
+            }
+            player.position.y += playerVelocityY * deltaTime;
+
+            const grassH = 1.7; const tableH = tableBounds.topY + 1.7;
+            const onTableXZ = player.position.x > tableBounds.minX && player.position.x < tableBounds.maxX && player.position.z > tableBounds.minZ && player.position.z < tableBounds.maxZ;
+            let targetFloor = grassH;
+            if (onTableXZ && player.position.y >= tableBounds.topY) targetFloor = tableH;
+            
+            if (player.position.y <= targetFloor) {
+                player.position.y = targetFloor;
+                playerVelocityY = 0;
+                isGrounded = true;
+                if (isMoving && walkPhase !== 0) player.position.y += Math.abs(Math.sin(walkPhase)) * 0.05;
+            } else {
+                isGrounded = false;
+            }
+        }
+
+        function updatePlayerAnimation(deltaTime) {
+            if (isDriving) return;
+
+            const isMoving = keys.w || keys.a || keys.s || keys.d;
+            const walkSpeed = keys.ctrl ? 15 : 10;
+            const swingAngle = 0.6;
+            const holdArm = player.rightArm; const freeArm = player.leftArm;
+
+            if (isMoving && isGrounded) {
+                walkPhase += deltaTime * walkSpeed;
+                player.leftLeg.rotation.x = Math.sin(walkPhase) * swingAngle;
+                player.rightLeg.rotation.x = -Math.sin(walkPhase) * swingAngle;
+                
+                if (holdingItem) {
+                    holdArm.rotation.x = THREE.MathUtils.lerp(holdArm.rotation.x, -0.2, 0.1);
+                    freeArm.rotation.x = -Math.sin(walkPhase) * swingAngle * 0.8;
+                } else {
+                    holdArm.rotation.x = Math.sin(walkPhase) * swingAngle * 0.8;
+                    freeArm.rotation.x = -Math.sin(walkPhase) * swingAngle * 0.8;
+                }
+
+                const now = Tone.now();
+                if (noiseSynth && now - lastStepTime > 0.3) {
+                    noiseSynth.triggerAttack(now);
+                    lastStepTime = now;
+                }
+            } else {
+                walkPhase = 0;
+                player.leftLeg.rotation.x = THREE.MathUtils.lerp(player.leftLeg.rotation.x, 0, 0.1);
+                player.rightLeg.rotation.x = THREE.MathUtils.lerp(player.rightLeg.rotation.x, 0, 0.1);
+                if (holdingItem) {
+                    holdArm.rotation.x = THREE.MathUtils.lerp(holdArm.rotation.x, -0.2, 0.1);
+                    freeArm.rotation.x = THREE.MathUtils.lerp(freeArm.rotation.x, 0, 0.1);
+                } else {
+                    holdArm.rotation.x = THREE.MathUtils.lerp(holdArm.rotation.x, 0, 0.1);
+                    freeArm.rotation.x = THREE.MathUtils.lerp(freeArm.rotation.x, 0, 0.1);
+                }
+            }
+        }
+
+        function showClickFeedback(text) {
+            ui.clickFeedback.textContent = text;
+            ui.clickFeedback.style.opacity = 1;
+            ui.clickFeedback.style.transform = "translate(-50%, 2rem)";
+            setTimeout(() => {
+                ui.clickFeedback.style.opacity = 0;
+                ui.clickFeedback.style.transform = "translate(-50%, 0rem)";
+            }, 500);
+        }
+
+        function updateHoldingUI() {
+            ui.holdingText.textContent = holdingItem ? itemNames[holdingItem] : "Empty Handed";
+        }
+
+        function updateHeldItemModel() {
+            if (heldItemMesh) { playerHand.remove(heldItemMesh); heldItemMesh = null; }
+            if (holdingItem) {
+                const geo = itemGeometries[holdingItem];
+                const mat = itemMaterials[holdingItem];
+                heldItemMesh = new THREE.Mesh(geo, mat);
+                playerHand.add(heldItemMesh);
+            }
+        }
+        
+        function updateWorkbenchUI() {
+            ui.workbenchSolventText.textContent = workbenchSolvent ? itemNames[workbenchSolvent] : "Empty";
+            ui.workbenchSoluteText.textContent = workbenchSolute ? itemNames[workbenchSolute] : "Empty";
+            
+            if (!isCrafting) ui.workbenchResultArea.style.display = 'none';
+            
+            if (!workbenchSolvent && !workbenchSolute && !holdingItem && !isCrafting) {
+                const workbenchPos = new THREE.Vector3(0, tableBounds.topY, 0);
+                const isPlayerNear = player.position.distanceTo(workbenchPos) < 8;
+                if (!isPlayerNear) ui.workbenchPanel.style.display = 'none';
+            } else {
+                ui.workbenchPanel.style.display = 'block';
+            }
+        }
+
+        function updateCamera(deltaTime) {
+            if (isDriving) return; 
+
+            const isCameraLocked = keys.shift || keys.rightMouseDown;
+            const targetPos = isCameraLocked ? shiftLockCamPos : idleCamPos;
+            camera.position.lerp(targetPos, deltaTime * 10.0);
+            cameraOrbit.position.lerp(player.position, deltaTime * 15.0);
+            if (isCameraLocked) cameraOrbit.quaternion.slerp(player.quaternion, deltaTime * 10.0);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const deltaTime = clock.getDelta();
+            
+            const pulse = (Math.sin(Date.now() * 0.005) + 1) * 0.5 + 0.5;
+            scene.traverse((obj) => {
+                if (obj.name === "neonPulse" && obj.material) {
+                    obj.material.emissiveIntensity = pulse;
+                }
+            });
+
+            updatePlayerMovement(deltaTime);
+            updatePlayerAnimation(deltaTime);
+            updateCamera(deltaTime);
+            updateFunElements(deltaTime); 
+            
+            if (ui.workbenchPanel.style.display === 'block') updateWorkbenchUI();
+            renderer.render(scene, camera);
+        }
+
+        init();
+    });
+    </script>
 </body>
 </html>
-
+index - AS - 07MS 883833 Erin Centre MS.html
+Displaying index - AS - 07MS 883833 Erin Centre MS.html.
