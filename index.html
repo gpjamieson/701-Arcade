@@ -201,9 +201,54 @@
             width: 100%;
             border: none;
         }
+
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: #050011;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1s ease-out;
+        }
+        
+        #start-btn {
+            background: transparent;
+            color: #00f3ff;
+            border: 4px solid #00f3ff;
+            padding: 20px 40px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px #00f3ff, inset 0 0 20px #00f3ff;
+            animation: blinker 1s linear infinite;
+            margin-top: 50px;
+        }
+        
+        #start-btn:hover {
+            background: #00f3ff;
+            color: #000;
+        }
+
     </style>
 </head>
 <body class="crt">
+
+    <!-- AUDIO PLAYER -->
+    <audio id="bg-music" loop>
+        <source src="stranger-things-124008.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen">
+        <h1>Mr. Jamieson's<br>Science Arcade</h1>
+        <button id="start-btn">INSERT COIN TO START</button>
+    </div>
 
     <div class="retro-grid"></div>
 
@@ -361,7 +406,31 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
+        const bgMusic = document.getElementById('bg-music');
+        const splashScreen = document.getElementById('splash-screen');
+        const startBtn = document.getElementById('start-btn');
+        let musicStarted = false;
+
+        // --- SPLASH SCREEN LOGIC ---
+        startBtn.addEventListener('click', () => {
+            // Fade out splash
+            splashScreen.style.opacity = '0';
+            setTimeout(() => {
+                splashScreen.style.display = 'none';
+            }, 1000);
+            
+            // Start Music
+            bgMusic.volume = 0.5; // Set volume to 50%
+            bgMusic.play().then(() => {
+                musicStarted = true;
+            }).catch(e => console.log("Audio play failed: ", e));
+            
+            // Start Scanning
+            startScanning();
+        });
+
+        // --- SCANNING LOGIC (Wrapped in function) ---
+        function startScanning() {
             const cards = document.querySelectorAll('.game-card');
             const instructionsText = document.querySelector('.instructions');
 
@@ -407,28 +476,34 @@
             });
 
             // Wait for all scanners to report back
-            await Promise.all(scanPromises);
-
-            // UPDATE THE TEXT AT THE TOP
-            instructionsText.innerText = "INSERT COIN";
-            instructionsText.classList.remove('blink');
-            // Make the text blink slowly now that it is ready
-            instructionsText.style.animation = "blinker 1.5s linear infinite"; 
-            instructionsText.style.color = "#00f3ff";
-            instructionsText.style.textShadow = "0 0 10px #00f3ff, 0 0 20px #00f3ff";
-        });
+            Promise.all(scanPromises).then(() => {
+                // UPDATE THE TEXT AT THE TOP
+                instructionsText.innerText = "INSERT COIN";
+                instructionsText.classList.remove('blink');
+                // Make the text blink slowly now that it is ready
+                instructionsText.style.animation = "blinker 1.5s linear infinite"; 
+                instructionsText.style.color = "#00f3ff";
+                instructionsText.style.textShadow = "0 0 10px #00f3ff, 0 0 20px #00f3ff";
+            });
+        }
 
         // MODAL LOGIC
         const modal = document.getElementById('gameModal');
         const frame = document.getElementById('gameFrame');
 
         function openGame(path) {
+            // PAUSE MUSIC
+            if (musicStarted) bgMusic.pause();
+
             modal.style.display = 'flex';
             frame.src = path;
             setTimeout(() => { frame.contentWindow.focus(); }, 500);
         }
 
         function closeGame() {
+            // RESUME MUSIC
+            if (musicStarted) bgMusic.play();
+
             modal.style.display = 'none';
             frame.src = '';
         }
