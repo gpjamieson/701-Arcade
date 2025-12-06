@@ -5,32 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mr. Jamieson's Science Arcade</title>
     <style>
+        /* --- 80s FONTS & BASICS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Vibur&display=swap');
+
         body {
-            background-color: #121212;
-            color: #00ff9d;
-            font-family: 'Courier New', monospace;
+            background-color: #050011;
+            color: #00f3ff;
+            font-family: 'Courier New', monospace; /* Fallback */
             text-align: center;
             margin: 0;
+            overflow-x: hidden;
+            min-height: 100vh;
         }
 
+        /* --- THE RETRO GRID BACKGROUND --- */
+        .retro-grid {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background: 
+                linear-gradient(transparent 0%, rgba(255, 0, 255, 0.4) 2%, transparent 3%),
+                linear-gradient(90deg, transparent 0%, rgba(255, 0, 255, 0.4) 2%, transparent 3%);
+            background-size: 50px 50px;
+            transform: perspective(500px) rotateX(60deg) translateY(0);
+            animation: gridMove 20s linear infinite;
+            opacity: 0.3;
+            bottom: -100px; /* Pull it down to create the 'floor' effect */
+        }
+        
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+        }
+
+        /* --- THE CRT SCREEN EFFECT --- */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* --- NEON TITLE --- */
         h1 {
-            text-shadow: 0 0 10px #00ff9d;
-            margin-top: 30px;
-            font-size: 3rem;
+            font-family: 'Press Start 2P', cursive; /* Arcade Font */
+            color: #fff;
+            text-transform: uppercase;
+            font-size: 2.5rem; /* Slightly smaller for mobile safety */
+            line-height: 1.5;
+            margin-top: 40px;
+            text-shadow: 
+                0 0 5px #fff,
+                0 0 10px #fff,
+                0 0 20px #ff00de,
+                0 0 30px #ff00de,
+                0 0 40px #ff00de;
+            animation: pulsate 1.5s infinite alternate;
+        }
+
+        @keyframes pulsate {
+            100% {
+                text-shadow:
+                0 0 4px #fff,
+                0 0 11px #fff,
+                0 0 19px #ff00de,
+                0 0 40px #ff00de,
+                0 0 80px #ff00de;
+            }
+            0% {
+                text-shadow:
+                0 0 2px #fff,
+                0 0 4px #fff,
+                0 0 6px #ff00de,
+                0 0 10px #ff00de,
+                0 0 45px #ff00de;
+            }
         }
         
         /* The Status Text Style */
         p.instructions {
-            color: #888;
+            color: #00f3ff;
+            font-family: 'Vibur', cursive; /* Neon script font */
             margin-bottom: 30px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            min-height: 1.5em; /* Prevents jumping when text changes */
+            font-size: 2rem;
+            text-shadow: 0 0 10px #00f3ff;
+            min-height: 1.5em;
         }
 
-        /* Blinking animation for the loading phase */
         .blink {
-            animation: blinker 1s linear infinite;
+            animation: blinker 0.2s linear infinite; /* Fast 80s glitch blink */
         }
         @keyframes blinker {
             50% { opacity: 0; }
@@ -41,61 +109,60 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 20px;
+            gap: 30px;
+            position: relative;
+            z-index: 1; /* Above the grid */
         }
 
+        /* --- THE CARTRIDGES --- */
         .game-card {
-            border: 2px solid #555;
+            border: 2px solid #ff00de;
             width: 200px;
-            padding: 20px;
+            padding: 15px;
             cursor: pointer;
             transition: 0.3s;
             position: relative;
-            background: #222;
-            color: #777;
-            pointer-events: none; /* Disabled until scan finishes */
-            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #ff00de;
+            pointer-events: none;
+            box-shadow: 0 0 10px #ff00de, inset 0 0 10px #ff00de;
+            clip-path: polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%); /* Sci-fi corner cut */
         }
 
-        /* --- DYNAMIC STATUS STYLES --- */
-        
+        .game-card h3 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
         /* READY TO PLAY */
         .game-card.status-online {
-            border-color: #00ff9d;
-            background-color: #121212;
-            color: #00ff9d;
-            pointer-events: auto; /* Enable clicking */
-            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+            border-color: #00f3ff;
+            color: #00f3ff;
+            box-shadow: 0 0 15px #00f3ff, inset 0 0 15px #00f3ff;
+            pointer-events: auto;
         }
         .game-card.status-online:hover {
-            background-color: #00ff9d;
-            color: #121212;
-            transform: scale(1.05);
-            box-shadow: 0 0 20px #00ff9d;
+            background-color: rgba(0, 243, 255, 0.2);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 0 30px #00f3ff, inset 0 0 20px #00f3ff;
         }
 
         /* MISSING CARTRIDGE */
         .game-card.status-offline {
-            border-color: #ff003c;
-            color: #ff003c;
-            background: repeating-linear-gradient(
-                45deg,
-                #1a0000,
-                #1a0000 10px,
-                #2a0000 10px,
-                #2a0000 20px
-            );
-            pointer-events: auto;
+            border-color: #333;
+            color: #555;
+            box-shadow: none;
+            pointer-events: auto; /* Allow clicking to show alert */
         }
-        .game-card.status-offline:hover {
-            opacity: 0.8;
-        }
-
+        
         .status-text {
             font-size: 0.8rem;
             margin-top: 10px;
             font-weight: bold;
             text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         /* --- MODAL STUFF --- */
@@ -104,7 +171,7 @@
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.95);
+            background-color: #000;
             z-index: 1000;
             flex-direction: column;
         }
@@ -113,19 +180,20 @@
             align-self: center;
             margin: 10px;
             padding: 10px 40px;
-            background: #ff003c;
-            color: white;
+            background: #ff00de;
+            color: #fff;
             border: none;
-            font-weight: bold;
-            font-size: 1.2rem;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1rem;
             cursor: pointer;
-            border-radius: 5px;
+            box-shadow: 0 0 10px #ff00de;
             text-transform: uppercase;
-            letter-spacing: 2px;
         }
         
         #closeBtn:hover {
-            background: #ff4466;
+            background: #fff;
+            color: #ff00de;
+            box-shadow: 0 0 20px #fff;
         }
 
         iframe {
@@ -135,12 +203,14 @@
         }
     </style>
 </head>
-<body>
+<body class="crt">
 
-    <h1>🧪 MR. JAMIESON'S SCIENCE ARCADE 🧪</h1>
+    <div class="retro-grid"></div>
+
+    <h1>Mr. Jamieson's<br>Science Arcade</h1>
     
     <!-- This is the text that will change -->
-    <p class="instructions blink">SYSTEM INITIALIZING... SCANNING CARTRIDGES...</p>
+    <p class="instructions blink">SYSTEM INITIALIZING...</p>
 
     <div class="arcade-container">
 
@@ -314,24 +384,24 @@
                         if (text.includes("SYSTEM OFFLINE")) {
                             // It's the placeholder
                             card.classList.add('status-offline');
-                            statusLabel.innerText = "MISSING CARTRIDGE";
+                            statusLabel.innerText = "MISSING";
                             card.onclick = () => alert("This student has not uploaded their game yet.");
                         } else {
                             // It's a real game
                             card.classList.add('status-online');
-                            statusLabel.innerText = "INSERT COIN TO PLAY";
+                            statusLabel.innerText = "READY";
                             card.onclick = () => openGame(url);
                         }
                     } else {
                         // File not found (treat as missing)
                         card.classList.add('status-offline');
-                        statusLabel.innerText = "MISSING CARTRIDGE";
+                        statusLabel.innerText = "MISSING";
                         card.onclick = () => alert("This student has not uploaded their game yet.");
                     }
                 } catch (error) {
                     // Network error (treat as missing)
                     card.classList.add('status-offline');
-                    statusLabel.innerText = "MISSING CARTRIDGE";
+                    statusLabel.innerText = "MISSING";
                     card.onclick = () => alert("This student has not uploaded their game yet.");
                 }
             });
@@ -340,10 +410,12 @@
             await Promise.all(scanPromises);
 
             // UPDATE THE TEXT AT THE TOP
-            instructionsText.innerText = "> SELECT A CARTRIDGE TO PLAY <";
+            instructionsText.innerText = "INSERT COIN";
             instructionsText.classList.remove('blink');
-            instructionsText.style.color = "#00ff9d";
-            instructionsText.style.textShadow = "0 0 10px #00ff9d";
+            // Make the text blink slowly now that it is ready
+            instructionsText.style.animation = "blinker 1.5s linear infinite"; 
+            instructionsText.style.color = "#00f3ff";
+            instructionsText.style.textShadow = "0 0 10px #00f3ff, 0 0 20px #00f3ff";
         });
 
         // MODAL LOGIC
