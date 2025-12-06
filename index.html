@@ -300,6 +300,10 @@
                 const url = card.getAttribute('data-url');
                 const statusLabel = card.querySelector('.status-text');
 
+                // Artificial delay for "retro scanning" effect (1s to 3s)
+                const randomDelay = Math.random() * 2000 + 1000;
+                await new Promise(r => setTimeout(r, randomDelay));
+
                 try {
                     // Fetch the file content with timestamp to prevent caching
                     const response = await fetch(url + '?t=' + new Date().getTime());
