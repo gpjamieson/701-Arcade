@@ -1,100 +1,608 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Neon Brick Breaker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Custom styles for the futuristic/neon look */
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background */
+            color: #ffffff;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
+            padding: 1rem;
         }
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
+        #gameCanvas {
+            border: 4px solid #f97316; /* Neon orange border */
+            background-color: #161b22; /* Slightly lighter inner background */
+            box-shadow: 0 0 20px #f97316;
+            cursor: pointer;
         }
 
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
+        .game-ui {
+            background-color: #1f2a37;
+            border: 2px solid #2e435a;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
 
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
+        .neon-button {
+            transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+            border: 1px solid #f97316;
         }
 
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
+        .neon-button:hover {
+            background-color: #f97316;
+            color: #161b22;
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #f97316, 0 0 5px #f97316 inset;
         }
 
-        .blink {
-            animation: blinker 1s linear infinite;
+        .quiz-option {
+            transition: all 0.1s;
+            background-color: #2e435a;
         }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
+        .quiz-option:hover:not(:disabled) {
+            background-color: #f97316;
+            color: #161b22;
+            transform: translateY(-2px);
         }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
+        .quiz-option:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
         }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        .quiz-correct {
+            background-color: #10b981 !important; /* Green */
+            color: #fff !important;
+            box-shadow: 0 0 10px #10b981;
+        }
+        .quiz-incorrect {
+            background-color: #ef4444 !important; /* Red */
+            color: #fff !important;
+            box-shadow: 0 0 10px #ef4444;
+        }
+        /* Full screen overlay for the modal */
+        #quizModalOverlay {
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.9);
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen">
 
-    <div class="scanline"></div>
+    <h1 class="text-3xl font-extrabold mb-4 text-orange-400">NEON BRICK BREAKER 🧱</h1>
+    <p class="mb-6 text-gray-400">Use the left/right arrow keys or move the mouse to control the paddle and break all the blocks!</p>
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+    <div class="game-ui rounded-xl p-4 w-full max-w-xl space-y-4">
+        <div class="flex justify-between font-mono text-lg text-green-400">
+            <span>Score: <span id="scoreDisplay">0</span></span>
+            <span>Lives: <span id="livesDisplay">3</span></span>
+        </div>
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+        <canvas id="gameCanvas" width="500" height="400" class="rounded-lg"></canvas>
+
+        <div id="messageBox" class="text-center font-bold h-6 text-xl text-red-500"></div>
+
+        <button id="resetButton" class="neon-button w-full py-2 bg-indigo-700 text-white font-bold rounded-lg hidden">
+            Restart Game
+        </button>
+    </div>
+
+    <!-- Science Quiz Modal Overlay -->
+    <div id="quizModalOverlay" class="fixed inset-0 flex items-center justify-center hidden">
+        <div class="w-full max-w-md p-6 rounded-xl bg-gray-800 border-2 border-fuchsia-500 shadow-2xl shadow-fuchsia-700">
+            <h2 class="text-2xl font-bold mb-4 text-fuchsia-400">Science Challenge!</h2>
+            <p id="quizQuestion" class="mb-6 text-lg font-medium text-gray-200">Question goes here.</p>
+
+            <div id="quizOptions" class="space-y-3">
+                <!-- Options buttons will be inserted here -->
+            </div>
+
+            <p id="quizFeedback" class="mt-4 text-center font-bold h-6"></p>
+
+            <button id="quizContinueButton" onclick="continueGameAfterQuiz()" class="neon-button w-full py-2 mt-6 bg-fuchsia-700 text-white font-bold rounded-lg hidden">
+                Continue Game
+            </button>
         </div>
     </div>
 
+    <script>
+        // --- GAME CONSTANTS ---
+        const CANVAS_WIDTH = 500;
+        const CANVAS_HEIGHT = 400;
+        const PADDLE_HEIGHT = 10;
+        const PADDLE_WIDTH = 75;
+        const BALL_RADIUS = 5;
+        const BRICK_ROW_COUNT = 5;
+        const BRICK_COLUMN_COUNT = 8;
+        const BRICK_WIDTH = 55;
+        const BRICK_HEIGHT = 15;
+        const BRICK_PADDING = 5;
+        const BRICK_OFFSET_TOP = 30;
+        const BRICK_OFFSET_LEFT = 25;
+        const PADDLE_COLOR = '#00ffff'; // Cyan
+        const BALL_COLOR = '#ff0077'; // Pink
+        const QUIZ_OPTIONS = ['A', 'B', 'C', 'D'];
+
+        // --- GAME STATE ---
+        let canvas, ctx;
+        let score = 0;
+        let lives = 3;
+        let isGameOver = false;
+        let gamePaused = true;
+        let isQuizActive = false; // New state to block game loop during quiz
+        let currentQuizIndex = -1;
+        
+        let paddle = {
+            x: (CANVAS_WIDTH - PADDLE_WIDTH) / 2,
+            y: CANVAS_HEIGHT - PADDLE_HEIGHT - 10,
+            dx: 0, 
+            speed: 7
+        };
+
+        let ball = {
+            x: CANVAS_WIDTH / 2,
+            y: paddle.y - BALL_RADIUS,
+            dx: 3, 
+            dy: -3, 
+            speed: 3.5, 
+            isMoving: false
+        };
+        
+        let bricks = [];
+        
+        // Key state for smooth movement
+        let rightPressed = false;
+        let leftPressed = false;
+
+        // --- SCIENCE QUIZ QUESTIONS (Grade 6 Solubility) ---
+        const solubilityQuestions = [
+            {
+                q: "What is the substance that dissolves in a liquid to form a solution?",
+                options: ["Solvent", "Solution", "Solute", "Suspension"],
+                correctIndex: 2,
+                explanation: "The **solute** is the minor component that is dissolved by the solvent."
+            },
+            {
+                q: "If you mix sugar and water, which substance is the solvent?",
+                options: ["Sugar", "Water", "Both", "Neither"],
+                correctIndex: 1,
+                explanation: "**Water** is the solvent because it is the liquid present in the largest amount and does the dissolving."
+            },
+            {
+                q: "What is known as the 'universal solvent' because it can dissolve many substances?",
+                options: ["Oil", "Alcohol", "Water", "Vinegar"],
+                correctIndex: 2,
+                explanation: "**Water** is an excellent solvent and is often called the 'universal solvent'."
+            },
+            {
+                q: "If a substance cannot dissolve in a liquid, it is called...",
+                options: ["Soluble", "Saturated", "Insoluble", "Liquid"],
+                correctIndex: 2,
+                explanation: "**Insoluble** means unable to dissolve in a liquid."
+            }
+        ];
+
+        // --- DOM Elements ---
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const livesDisplay = document.getElementById('livesDisplay');
+        const messageBox = document.getElementById('messageBox');
+        const resetButton = document.getElementById('resetButton');
+        const quizModalOverlay = document.getElementById('quizModalOverlay');
+        const quizQuestionText = document.getElementById('quizQuestion');
+        const quizOptionsDiv = document.getElementById('quizOptions');
+        const quizFeedback = document.getElementById('quizFeedback');
+        const quizContinueButton = document.getElementById('quizContinueButton');
+
+
+        // --- BRICK INITIALIZATION ---
+        function createBricks() {
+            bricks = [];
+            for(let c = 0; c < BRICK_COLUMN_COUNT; c++) {
+                bricks[c] = [];
+                for(let r = 0; r < BRICK_ROW_COUNT; r++) {
+                    const x = c * (BRICK_WIDTH + BRICK_PADDING) + BRICK_OFFSET_LEFT;
+                    const y = r * (BRICK_HEIGHT + BRICK_PADDING) + BRICK_OFFSET_TOP;
+                    
+                    let color;
+                    switch(r) {
+                        case 0: color = '#ff00ff'; break; 
+                        case 1: color = '#ffff00'; break; 
+                        case 2: color = '#00ff00'; break; 
+                        case 3: color = '#00ffff'; break; 
+                        default: color = '#ffffff'; break; 
+                    }
+                    
+                    bricks[c][r] = { x: x, y: y, status: 1, color: color };
+                }
+            }
+        }
+
+        // --- DRAWING FUNCTIONS ---
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, BALL_RADIUS, 0, Math.PI*2);
+            ctx.fillStyle = BALL_COLOR;
+            ctx.fill();
+            ctx.closePath();
+            
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = BALL_COLOR;
+        }
+
+        function drawPaddle() {
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = PADDLE_COLOR;
+            ctx.fillStyle = PADDLE_COLOR;
+            ctx.fillRect(paddle.x, paddle.y, PADDLE_WIDTH, PADDLE_HEIGHT);
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function drawBricks() {
+            ctx.shadowBlur = 5;
+            for(let c = 0; c < BRICK_COLUMN_COUNT; c++) {
+                for(let r = 0; r < BRICK_ROW_COUNT; r++) {
+                    const brick = bricks[c][r];
+                    if(brick.status === 1) {
+                        ctx.shadowColor = brick.color;
+                        ctx.fillStyle = brick.color;
+                        ctx.fillRect(brick.x, brick.y, BRICK_WIDTH, BRICK_HEIGHT);
+                    }
+                }
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        // --- GAME MECHANICS ---
+        
+        function handlePaddleMovement() {
+            if (rightPressed) {
+                paddle.x += paddle.speed;
+            } else if (leftPressed) {
+                paddle.x -= paddle.speed;
+            }
+
+            if (paddle.x < 0) {
+                paddle.x = 0;
+            } else if (paddle.x + PADDLE_WIDTH > CANVAS_WIDTH) {
+                paddle.x = CANVAS_WIDTH - PADDLE_WIDTH;
+            }
+        }
+        
+        function handleBallMovement() {
+            if (!ball.isMoving) {
+                ball.x = paddle.x + PADDLE_WIDTH / 2;
+                return;
+            }
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            if (ball.x + BALL_RADIUS > CANVAS_WIDTH || ball.x - BALL_RADIUS < 0) {
+                ball.dx = -ball.dx;
+            }
+
+            if (ball.y - BALL_RADIUS < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            if (ball.y + BALL_RADIUS > CANVAS_HEIGHT) {
+                // Ball lost, trigger science quiz before losing life
+                triggerScienceQuiz();
+                return;
+            }
+            
+            // Paddle collision
+            if (ball.y + BALL_RADIUS > paddle.y && 
+                ball.x > paddle.x && 
+                ball.x < paddle.x + PADDLE_WIDTH &&
+                ball.y < paddle.y + PADDLE_HEIGHT
+            ) {
+                const hitPoint = ball.x - (paddle.x + PADDLE_WIDTH / 2);
+                const normalizedHitPoint = hitPoint / (PADDLE_WIDTH / 2);
+                
+                ball.dx = normalizedHitPoint * ball.speed;
+                ball.dy = -Math.sqrt(ball.speed * ball.speed - ball.dx * ball.dx); 
+            }
+        }
+
+        function brickCollisionDetection() {
+            for(let c = 0; c < BRICK_COLUMN_COUNT; c++) {
+                for(let r = 0; r < BRICK_ROW_COUNT; r++) {
+                    const brick = bricks[c][r];
+                    if(brick.status === 1) {
+                        if (ball.x > brick.x && ball.x < brick.x + BRICK_WIDTH && 
+                            ball.y > brick.y && ball.y < brick.y + BRICK_HEIGHT) {
+                            
+                            ball.dy = -ball.dy; 
+                            brick.status = 0; 
+                            score += 10;
+                            scoreDisplay.textContent = score;
+                            
+                            checkWin();
+                            return; 
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            let totalBricks = BRICK_ROW_COUNT * BRICK_COLUMN_COUNT;
+            let brokenBricks = 0;
+            
+            for(let c = 0; c < BRICK_COLUMN_COUNT; c++) {
+                for(let r = 0; r < BRICK_ROW_COUNT; r++) {
+                    if (bricks[c][r].status === 0) {
+                        brokenBricks++;
+                    }
+                }
+            }
+            
+            if (brokenBricks === totalBricks) {
+                gameOver(true); 
+            }
+        }
+        
+        function resetBallAndPaddle() {
+            paddle.x = (CANVAS_WIDTH - PADDLE_WIDTH) / 2;
+            ball.x = CANVAS_WIDTH / 2;
+            ball.y = paddle.y - BALL_RADIUS;
+            ball.dx = 3;
+            ball.dy = -3;
+            ball.isMoving = false;
+            gamePaused = true;
+        }
+
+        function loseLife() {
+            lives--;
+            livesDisplay.textContent = lives;
+            
+            if (lives === 0) {
+                gameOver(false); 
+            } else {
+                resetBallAndPaddle();
+                messageBox.textContent = "Incorrect! Life Lost. Press SPACE or Click to Launch!";
+            }
+        }
+
+        function triggerScienceQuiz() {
+            if (isGameOver) return;
+            
+            isQuizActive = true;
+            gamePaused = true;
+            
+            // Pick a random question
+            currentQuizIndex = Math.floor(Math.random() * solubilityQuestions.length);
+            const quiz = solubilityQuestions[currentQuizIndex];
+            
+            // Reset modal state
+            quizModalOverlay.classList.remove('hidden');
+            quizQuestionText.textContent = quiz.q;
+            quizOptionsDiv.innerHTML = '';
+            quizFeedback.textContent = '';
+            quizContinueButton.classList.add('hidden');
+            
+            // Populate options
+            quiz.options.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option w-full py-3 px-4 rounded-lg text-left font-medium hover:bg-fuchsia-600 hover:text-white';
+                btn.textContent = `${QUIZ_OPTIONS[index]}. ${option}`;
+                btn.setAttribute('data-index', index);
+                btn.onclick = () => submitQuizAnswer(index);
+                quizOptionsDiv.appendChild(btn);
+            });
+        }
+        
+        function submitQuizAnswer(selectedIndex) {
+            if (!isQuizActive) return;
+
+            const quiz = solubilityQuestions[currentQuizIndex];
+            const isCorrect = (selectedIndex === quiz.correctIndex);
+            
+            // Disable all buttons and show feedback
+            const optionButtons = quizOptionsDiv.querySelectorAll('button');
+            optionButtons.forEach((btn, index) => {
+                btn.disabled = true;
+                if (index === quiz.correctIndex) {
+                    btn.classList.add('quiz-correct');
+                } else if (index === selectedIndex) {
+                    btn.classList.add('quiz-incorrect');
+                }
+            });
+            
+            quizContinueButton.classList.remove('hidden');
+
+            if (isCorrect) {
+                quizFeedback.textContent = "CORRECT! Life Saved! Launch again!";
+                quizFeedback.classList.remove('text-red-500');
+                quizFeedback.classList.add('text-green-400');
+                
+                // Since the life was saved, just reset the ball/paddle and pause for relaunch
+                resetBallAndPaddle();
+                messageBox.textContent = "Correct! Life Saved. Press SPACE or Click to Launch!";
+            } else {
+                quizFeedback.textContent = `INCORRECT! ${quiz.explanation}`;
+                quizFeedback.classList.remove('text-green-400');
+                quizFeedback.classList.add('text-red-500');
+                
+                // Life is lost, call loseLife logic
+                loseLife();
+            }
+        }
+        
+        function continueGameAfterQuiz() {
+            quizModalOverlay.classList.add('hidden');
+            isQuizActive = false;
+            if (isGameOver) return;
+            
+            // The game remains paused, ready for the player to relaunch the ball
+            // The next loop will proceed normally (though paused)
+        }
+
+        function gameOver(win) {
+            isGameOver = true;
+            gamePaused = true;
+            if (win) {
+                messageBox.textContent = `You Win! Final Score: ${score}`;
+                messageBox.classList.remove('text-red-500');
+                messageBox.classList.add('text-green-400');
+            } else {
+                messageBox.textContent = `Game Over! Final Score: ${score}`;
+                messageBox.classList.remove('text-green-400');
+                messageBox.classList.add('text-red-500');
+            }
+            resetButton.classList.remove('hidden');
+        }
+
+        // --- EVENT HANDLERS ---
+        
+        function keyDownHandler(e) {
+            if (isQuizActive) return; // Ignore input during quiz
+
+            if (e.key === "Right" || e.key === "ArrowRight") {
+                rightPressed = true;
+            } else if (e.key === "Left" || e.key === "ArrowLeft") {
+                leftPressed = true;
+            } else if (e.key === " " && gamePaused && !isGameOver) {
+                e.preventDefault(); // Prevent scrolling on spacebar press
+                gamePaused = false;
+                ball.isMoving = true;
+                messageBox.textContent = "";
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") {
+                rightPressed = false;
+            } else if (e.key === "Left" || e.key === "ArrowLeft") {
+                leftPressed = false;
+            }
+        }
+        
+        function mouseMoveHandler(e) {
+            if (isQuizActive) return; // Ignore input during quiz
+            
+            const rect = canvas.getBoundingClientRect();
+            const relativeX = e.clientX - rect.left;
+            
+            if (relativeX > 0 && relativeX < CANVAS_WIDTH) {
+                paddle.x = relativeX - PADDLE_WIDTH / 2;
+                
+                if (paddle.x < 0) paddle.x = 0;
+                if (paddle.x + PADDLE_WIDTH > CANVAS_WIDTH) paddle.x = CANVAS_WIDTH - PADDLE_WIDTH;
+            }
+        }
+        
+        function clickHandler() {
+            if (isQuizActive) return; // Ignore input during quiz
+
+            if (gamePaused && !isGameOver) {
+                gamePaused = false;
+                ball.isMoving = true;
+                messageBox.textContent = "";
+            }
+        }
+
+        // --- INITIALIZATION & LOOP ---
+
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = CANVAS_WIDTH;
+            canvas.height = CANVAS_HEIGHT;
+
+            document.addEventListener('keydown', keyDownHandler);
+            document.addEventListener('keyup', keyUpHandler);
+            document.addEventListener('mousemove', mouseMoveHandler);
+            canvas.addEventListener('click', clickHandler);
+            resetButton.addEventListener('click', resetGame);
+            
+            // Prevent scrolling on spacebar press globally, but allow for inputs
+            window.addEventListener('keydown', function(e) {
+                if(e.key == " " && e.target == document.body) {
+                    e.preventDefault();
+                }
+            });
+            
+            resetGame();
+        }
+        
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            isGameOver = false;
+            isQuizActive = false;
+            gamePaused = true;
+            
+            resetBallAndPaddle();
+            
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives;
+            messageBox.textContent = "Press SPACE or Click to Launch!";
+            messageBox.classList.remove('text-green-400');
+            messageBox.classList.add('text-red-500');
+            resetButton.classList.add('hidden');
+            quizModalOverlay.classList.add('hidden');
+            
+            createBricks();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop() {
+            // Stop the loop if the game is over or the quiz is active
+            if (isGameOver || isQuizActive) {
+                // We still want to draw the paddle and allow movement while paused/quiz is active
+                ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                ctx.fillStyle = '#161b22';
+                ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                
+                drawBricks();
+                drawPaddle();
+                drawBall();
+                
+                handlePaddleMovement();
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+
+            // 1. Clear Canvas
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.fillStyle = '#161b22';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // 2. Update Game State
+            if (!gamePaused) {
+                handlePaddleMovement();
+                handleBallMovement();
+                brickCollisionDetection();
+            } else {
+                 // Update paddle position even when paused for mouse/keyboard control
+                handlePaddleMovement();
+            }
+            
+            // 3. Draw Elements 
+            drawBricks();
+            drawPaddle();
+            drawBall(); 
+            
+            // 4. Loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize the game when the window loads
+        window.onload = init;
+    </script>
 </body>
 </html>
+Neon Brick Breaker - ME - 07MS 902107 Erin Centre MS.txt
+Displaying Neon Brick Breaker - ME - 07MS 902107 Erin Centre MS.txt.
