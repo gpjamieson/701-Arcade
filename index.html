@@ -11,15 +11,14 @@
         body {
             background-color: #050011;
             /* --- BACKGROUND IMAGE SETTINGS --- */
-            /* Upload an image named 'background.jpg' to your folder to see it! */
             background-image: url('background.jpg'); 
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            background-attachment: fixed; /* Keeps image still while scrolling */
+            background-attachment: fixed;
             
             color: #00f3ff;
-            font-family: 'Courier New', monospace; /* Fallback */
+            font-family: 'Courier New', monospace;
             text-align: center;
             margin: 0;
             overflow-x: hidden;
@@ -39,7 +38,7 @@
             transform: perspective(500px) rotateX(60deg) translateY(0);
             animation: gridMove 20s linear infinite;
             opacity: 0.3;
-            bottom: -100px; /* Pull it down to create the 'floor' effect */
+            bottom: -100px;
         }
         
         @keyframes gridMove {
@@ -61,10 +60,10 @@
 
         /* --- NEON TITLE --- */
         h1 {
-            font-family: 'Press Start 2P', cursive; /* Arcade Font */
+            font-family: 'Press Start 2P', cursive;
             color: #fff;
             text-transform: uppercase;
-            font-size: 2.5rem; /* Slightly smaller for mobile safety */
+            font-size: 2.5rem;
             line-height: 1.5;
             margin-top: 40px;
             text-shadow: 
@@ -98,7 +97,7 @@
         /* The Status Text Style */
         p.instructions {
             color: #00f3ff;
-            font-family: 'Vibur', cursive; /* Neon script font */
+            font-family: 'Vibur', cursive;
             margin-bottom: 30px;
             font-size: 2rem;
             text-shadow: 0 0 10px #00f3ff;
@@ -106,7 +105,7 @@
         }
 
         .blink {
-            animation: blinker 0.2s linear infinite; /* Fast 80s glitch blink */
+            animation: blinker 0.2s linear infinite;
         }
         @keyframes blinker {
             50% { opacity: 0; }
@@ -119,7 +118,7 @@
             justify-content: center;
             gap: 30px;
             position: relative;
-            z-index: 1; /* Above the grid */
+            z-index: 1;
         }
 
         /* --- THE CARTRIDGES --- */
@@ -134,7 +133,7 @@
             color: #ff00de;
             pointer-events: none;
             box-shadow: 0 0 10px #ff00de, inset 0 0 10px #ff00de;
-            clip-path: polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%); /* Sci-fi corner cut */
+            clip-path: polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%);
         }
 
         .game-card h3 {
@@ -162,7 +161,7 @@
             border-color: #333;
             color: #555;
             box-shadow: none;
-            pointer-events: auto; /* Allow clicking to show alert */
+            pointer-events: auto;
         }
         
         .status-text {
@@ -243,6 +242,63 @@
             color: #000;
         }
 
+        /* --- AUDIO CONTROLS (NEW) --- */
+        #audio-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border: 2px solid #00f3ff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px #00f3ff;
+        }
+
+        #mute-btn {
+            background: transparent;
+            color: #00f3ff;
+            border: 1px solid #00f3ff;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.6rem;
+            padding: 5px 10px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        
+        #mute-btn:hover {
+            background: #00f3ff;
+            color: #000;
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100px;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 0;
+            background: #ff00de;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 5px #ff00de;
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #00f3ff;
+        }
+
     </style>
 </head>
 <body class="crt">
@@ -256,6 +312,12 @@
     <div id="splash-screen">
         <h1>Mr. Jamieson's<br>Science Arcade</h1>
         <button id="start-btn">INSERT COIN TO START</button>
+    </div>
+
+    <!-- AUDIO CONTROLS -->
+    <div id="audio-controls" style="display:none;"> <!-- Hidden until started -->
+        <button id="mute-btn">MUSIC: ON</button>
+        <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
     </div>
 
     <div class="retro-grid"></div>
@@ -417,7 +479,12 @@
         const bgMusic = document.getElementById('bg-music');
         const splashScreen = document.getElementById('splash-screen');
         const startBtn = document.getElementById('start-btn');
-        let musicStarted = false;
+        const audioControls = document.getElementById('audio-controls');
+        const muteBtn = document.getElementById('mute-btn');
+        const volumeSlider = document.getElementById('volume-slider');
+
+        let isMuted = false;
+        let previousVolume = 0.5;
 
         // --- SPLASH SCREEN LOGIC ---
         startBtn.addEventListener('click', () => {
@@ -425,19 +492,45 @@
             splashScreen.style.opacity = '0';
             setTimeout(() => {
                 splashScreen.style.display = 'none';
+                audioControls.style.display = 'flex'; // Show controls
             }, 1000);
             
             // Start Music
-            bgMusic.volume = 0.5; // Set volume to 50%
+            bgMusic.volume = volumeSlider.value;
             bgMusic.play().then(() => {
-                musicStarted = true;
+                // success
             }).catch(e => console.log("Audio play failed: ", e));
             
             // Start Scanning
             startScanning();
         });
 
-        // --- SCANNING LOGIC (Wrapped in function) ---
+        // --- AUDIO CONTROL LOGIC ---
+        muteBtn.addEventListener('click', () => {
+            if (isMuted) {
+                // UNMUTE
+                bgMusic.muted = false;
+                muteBtn.innerText = "MUSIC: ON";
+                isMuted = false;
+            } else {
+                // MUTE
+                bgMusic.muted = true;
+                muteBtn.innerText = "MUSIC: OFF";
+                isMuted = true;
+            }
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            bgMusic.volume = e.target.value;
+            if (bgMusic.volume > 0 && isMuted) {
+                // Auto unmute if they drag slider
+                bgMusic.muted = false;
+                muteBtn.innerText = "MUSIC: ON";
+                isMuted = false;
+            }
+        });
+
+        // --- SCANNING LOGIC ---
         function startScanning() {
             const cards = document.querySelectorAll('.game-card');
             const instructionsText = document.querySelector('.instructions');
@@ -500,8 +593,8 @@
         const frame = document.getElementById('gameFrame');
 
         function openGame(path) {
-            // PAUSE MUSIC
-            if (musicStarted) bgMusic.pause();
+            // PAUSE MUSIC (unless already paused by something else)
+            bgMusic.pause();
 
             modal.style.display = 'flex';
             frame.src = path;
@@ -509,8 +602,10 @@
         }
 
         function closeGame() {
-            // RESUME MUSIC
-            if (musicStarted) bgMusic.play();
+            // RESUME MUSIC (Only if not muted)
+            if (!isMuted) {
+                bgMusic.play();
+            }
 
             modal.style.display = 'none';
             frame.src = '';
