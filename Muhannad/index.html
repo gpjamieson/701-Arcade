@@ -3,98 +3,622 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Mixture Lab V22: Guided Fan</title>
     <style>
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            overflow: hidden;
+            color: white;
+        }
+
+        #app-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
+            transform: scale(0.95);
+        }
+
+        #header-panel {
             text-align: center;
+            margin-bottom: 15px;
+        }
+
+        h1 { margin: 0; font-size: 42px; font-weight: 800; letter-spacing: 2px; text-shadow: 0 0 15px rgba(0,255,255,0.6); }
+        h2 { margin: 5px 0 0 0; font-size: 20px; font-weight: normal; color: #aec6cf; font-style: italic; }
+
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0px 20px 50px rgba(0, 0, 0, 0.5);
+            border: 4px solid #34495e;
             overflow: hidden;
+            margin-bottom: 20px;
+            z-index: 5;
+            cursor: none;
         }
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
+        canvas { display: block; margin: 0 auto; }
 
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
+        #ui-container {
+            width: 800px;
+            background-color: #2c3e50;
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.4);
+            border: 3px solid #1a252f;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
             z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
         }
 
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        #tools-group { display: flex; gap: 12px; }
+        #system-group { display: flex; gap: 12px; padding-left: 20px; border-left: 2px solid #34495e; }
+
+        button {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            position: relative;
+            top: 0;
+        }
+
+        button:active { top: 4px; box-shadow: none; }
+        button:hover { filter: brightness(1.2); }
+        button.active-tool { border: 2px solid #fff; box-shadow: 0 0 15px #00ffff; transform: scale(1.05); }
+
+        .tool-btn { background: linear-gradient(to bottom, #3498db, #2980b9); }
+        .hint-btn { background: linear-gradient(to bottom, #f39c12, #d35400); }
+        .music-btn { background: linear-gradient(to bottom, #9b59b6, #8e44ad); min-width: 50px; }
+        .reset-btn { background: linear-gradient(to bottom, #e74c3c, #c0392b); font-size: 18px; padding: 8px 15px; }
+        .next-btn { background: linear-gradient(to bottom, #2ecc71, #27ae60); animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+
+        #hint-overlay {
+            position: absolute; bottom: 20px; right: 20px;
+            background-color: #f39c12; color: white; padding: 15px 20px;
+            border-radius: 10px; font-size: 16px; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: none; z-index: 15;
+            max-width: 300px; border: 2px solid #e67e22;
+        }
+
+        #message-overlay {
+            position: absolute; top: 40%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 50px; font-weight: 900;
+            text-shadow: 0 4px 0px white, 0 0 20px rgba(0,0,0,0.5); pointer-events: none;
+            display: none; z-index: 20; width: 100%; text-align: center;
+        }
+        .success { color: #2ecc71; -webkit-text-stroke: 2px #27ae60; }
+        .error { color: #e74c3c; -webkit-text-stroke: 2px #c0392b; }
+
+        #progress-container {
+            width: 800px; height: 8px; background-color: rgba(0,0,0,0.5);
+            margin-top: 20px; border-radius: 4px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        #progress-bar {
+            height: 100%; width: 0%; background: linear-gradient(to right, #00f260, #0575e6);
+            transition: width 0.5s ease-in-out; box-shadow: 0 0 10px #00f260;
         }
     </style>
 </head>
 <body>
 
-    <div class="scanline"></div>
-
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
-
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+    <div id="app-container">
+        <div id="header-panel">
+            <h1 id="level-title">Mixture Lab</h1>
+            <h2 id="level-desc">Loading...</h2>
         </div>
+
+        <div id="canvas-container">
+            <div id="message-overlay">Correct!</div>
+            <div id="hint-overlay">Try using the magnet!</div>
+            <canvas id="gameCanvas" width="800" height="450"></canvas>
+        </div>
+
+        <div id="ui-container">
+            <div id="tools-group"></div>
+            <div id="system-group">
+                <button class="hint-btn" onclick="toggleHint()">💡 Hint</button>
+                <button class="music-btn" id="music-toggle" onclick="toggleAudio()">🔇</button>
+                <button class="reset-btn" onclick="loadLevel(currentLevelIdx)">↻</button>
+            </div>
+        </div>
+
+        <div id="progress-container"><div id="progress-bar"></div></div>
     </div>
 
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const msgOverlay = document.getElementById('message-overlay');
+        const hintOverlay = document.getElementById('hint-overlay');
+        const toolsGroup = document.getElementById('tools-group');
+        const titleEl = document.getElementById('level-title');
+        const descEl = document.getElementById('level-desc');
+        const progressBar = document.getElementById('progress-bar');
+        const musicBtn = document.getElementById('music-toggle');
+
+        // --- Config ---
+        const BIN_COLLECT = { x: 620, y: 50, w: 140, h: 140, label: "Collection", type: "collect" };
+        const BIN_WASTE   = { x: 620, y: 260, w: 140, h: 140, label: "Disposal", type: "waste" };
+
+        const LEVELS = [
+            { 
+                id: 1, title: "Diamonds & Rocks", desc: "Manual Sort: Drag diamonds to Collection.", 
+                hint: "Hold click to grab diamonds. Drag to green bin.", container: "tray",
+                particles: { rock: 40, diamond: 15 }, tools: ["Tongs", "Sieve", "Magnet"], targets: { diamond: 'collect' } 
+            },
+            { 
+                id: 2, title: "Wheat & Chaff", desc: "Winnowing: Fan the chaff into Disposal.", 
+                hint: "Hold click to use Fan. Hover near chaff to blow it away.", container: "tray",
+                particles: { wheat: 80, chaff: 60 }, tools: ["Fan", "Sieve", "Add Water"], targets: { chaff: 'waste' } 
+            },
+            { 
+                id: 3, title: "Sand & Gravel", desc: "Sieving: Scoop rocks, dump in Disposal.", 
+                hint: "Scoop rocks with Sieve. Drag to red bin.", container: "tray",
+                particles: { sand: 120, gravel: 25 }, tools: ["Magnet", "Sieve", "Funnel"], targets: { gravel: 'waste' } 
+            },
+            { 
+                id: 4, title: "Iron & Sugar", desc: "Magnetism: Drag iron to Collection.", 
+                hint: "Magnet grabs iron. Drag to green bin.", container: "tray",
+                particles: { sugar: 100, iron: 40 }, tools: ["Sieve", "Magnet", "Heat"], targets: { iron: 'collect' } 
+            },
+            { 
+                id: 5, title: "Sawdust & Sand", desc: "Floatation: Add Water to overflow sawdust.", 
+                hint: "Press and Hold 'Add Water'. Fill to the top!", container: "beaker",
+                particles: { sand: 60, sawdust: 60 }, tools: ["Magnet", "Add Water"], targets: { sawdust: 'waste' } 
+            },
+            { 
+                id: 6, title: "Oil & Water", desc: "Decantation: Drain the water manually.", 
+                hint: "Hold click on Funnel to drain water.", container: "beaker",
+                particles: { oil: 70, water: 70 }, tools: ["Funnel", "Filter", "Tongs"], targets: { water: 'waste' } 
+            },
+            { 
+                id: 7, title: "Salt Solution", desc: "Evaporation: Boil the water away.", 
+                hint: "Hold Heat over beaker to boil water.", container: "beaker",
+                particles: { saltwater: 150 }, tools: ["Sieve", "Heat", "Filter"], targets: { water: 'evaporate', saltwater: 'evaporate' } 
+            },
+            { 
+                id: 8, title: "Master Challenge", desc: "Complex Mix: Sort everything.", 
+                hint: "Iron->Green. Chaff->Red. Sand->Green.", container: "beaker",
+                particles: { sand: 50, iron: 30, chaff: 40 }, tools: ["Magnet", "Fan", "Filter", "Heat"], targets: { iron: 'collect', chaff: 'waste', sand: 'collect' } 
+            }
+        ];
+
+        // --- State ---
+        let currentLevelIdx = 0;
+        let particles = [];
+        let isComplete = false;
+        
+        let activeToolName = null;
+        let isMouseDown = false;
+        let mouseX = 0, mouseY = 0;
+        let bounds = { x: 0, y: 0, w: 0, h: 0 };
+        let totalTargetsStart = 0;
+        let waterHeight = 0;
+
+        const TOOLS = {
+            "Magnet": { radius: 60, capacity: 8, type: "carry", target: "iron" },
+            "Tongs": { radius: 40, capacity: 3, type: "carry", target: "diamond" },
+            "Sieve": { radius: 70, capacity: 10, type: "carry", target: ["gravel", "rock"] },
+            "Filter": { radius: 70, capacity: 15, type: "carry", target: "sand" },
+            "Fan": { radius: 60, force: 4, type: "push", target: ["chaff", "sawdust"] }, // Guided Push
+            "Add Water": { type: "pour" }, 
+            "Funnel": { radius: 50, type: "drain", target: "water" },
+            "Heat": { radius: 80, type: "area", target: ["water", "saltwater"] }
+        };
+
+        // --- Audio ---
+        let audioCtx = null, isAudioPlaying = false, oscillators = [];
+        function toggleAudio() {
+            if (!isAudioPlaying) { initAudio(); musicBtn.innerText = "🔊"; musicBtn.style.filter = "brightness(1.5)"; } 
+            else { stopAudio(); musicBtn.innerText = "🔇"; musicBtn.style.filter = "brightness(1.0)"; }
+            isAudioPlaying = !isAudioPlaying;
+        }
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const createOsc = (freq, type, pan) => {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const panner = audioCtx.createStereoPanner();
+                osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                panner.pan.value = pan; osc.connect(gain); gain.connect(panner); panner.connect(audioCtx.destination); osc.start();
+                return { osc, gain };
+            };
+            oscillators.push(createOsc(110, 'sine', -0.3)); oscillators.push(createOsc(112, 'sine', 0.3)); oscillators.push(createOsc(330, 'triangle', 0));
+        }
+        function stopAudio() {
+            if(audioCtx) { oscillators.forEach(o => { o.gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1); setTimeout(() => o.osc.stop(), 1000); }); oscillators = []; }
+        }
+        function toggleHint() { hintOverlay.style.display = (hintOverlay.style.display === 'block') ? 'none' : 'block'; }
+
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x; this.y = y; this.type = type; 
+                this.targetX = x; this.targetY = y;
+                this.alpha = 1.0; 
+                this.vx = 0; this.vy = 0;
+                this.floating = false; 
+                this.heldByTool = false; this.heldOffsetX = 0; this.heldOffsetY = 0;
+                this.stored = false; 
+                this.settled = false; 
+                
+                const styles = {
+                    rock: { c: '#7f8c8d', s: 10, shape: 'poly' }, diamond: { c: '#00ffff', s: 8, shape: 'diamond' }, 
+                    wheat: { c: '#ffd700', s: 4, shape: 'circle' }, chaff: { c: '#d4ac0d', s: 3, shape: 'rect' },
+                    sand: { c: '#ffcc99', s: 3, shape: 'circle' }, gravel: { c: '#555', s: 9, shape: 'poly' },
+                    iron: { c: '#b0c4de', s: 4, shape: 'rect' }, sugar: { c: '#ffffff', s: 2, shape: 'circle' },
+                    oil: { c: '#f1c40f', s: 6, shape: 'circle' }, water: { c: '#3498db', s: 5, shape: 'circle' },
+                    salt: { c: '#fff', s: 3, shape: 'circle' }, sawdust: { c: '#e67e22', s: 5, shape: 'rect' },
+                    saltwater: { c: '#85c1e9', s: 4, shape: 'circle' }
+                };
+                const style = styles[type] || styles.sand;
+                this.color = style.c; this.size = style.s; this.shape = style.shape;
+            }
+            
+            update() {
+                if (this.alpha <= 0) return;
+                if (this.settled) return;
+
+                if (this.stored) {
+                    const dx = this.targetX - this.x; const dy = this.targetY - this.y;
+                    this.x += dx * 0.1; this.y += dy * 0.1;
+                    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) this.settled = true;
+                    return;
+                }
+
+                if (this.heldByTool) {
+                    this.x = mouseX + this.heldOffsetX;
+                    this.y = mouseY + this.heldOffsetY;
+                    this.targetX = this.x; 
+                    this.targetY = this.y;
+                    this.vx = 0; this.vy = 0;
+                } else {
+                    // Level 5 Buoyancy
+                    if (this.type === 'sawdust' && waterHeight > 0 && !this.stored) {
+                        const waterSurfaceY = (bounds.y + bounds.h) - waterHeight;
+                        if (this.y > waterSurfaceY) {
+                            this.targetY = waterSurfaceY + (Math.random()*5);
+                            this.floating = true;
+                        }
+                    } 
+                    
+                    // --- PHYSICS ---
+                    // If moving fast, update target
+                    if (Math.abs(this.vx) > 0.1 || Math.abs(this.vy) > 0.1) { 
+                        this.targetX = this.x; 
+                        this.targetY = this.y; 
+                    }
+
+                    this.x += (this.targetX - this.x) * 0.1; 
+                    this.y += (this.targetY - this.y) * 0.1; 
+
+                    this.x += this.vx; 
+                    this.y += this.vy;
+                    
+                    this.vx *= 0.9; 
+                    this.vy *= 0.9;
+
+                    if(this.floating) this.y += Math.sin(Date.now() / 150) * 0.5;
+
+                    // --- BOUNDARY CHECKS ---
+                    if (this.x < 10) { this.x = 10; this.vx *= -0.5; }
+                    if (this.x > 790) { this.x = 790; this.vx *= -0.5; }
+                    if (this.y < 10) { this.y = 10; this.vy *= -0.5; }
+                    if (this.y > 440) { this.y = 440; this.vy *= -0.5; }
+
+                    // --- CORNER RESET LOGIC (Anti-Stuck) ---
+                    const inLeft = (this.x < 30); const inRight = (this.x > 770);
+                    const inTop = (this.y < 30); const inBottom = (this.y > 420);
+                    if ((inLeft || inRight) && (inTop || inBottom)) {
+                        this.x = bounds.x + bounds.w/2;
+                        this.y = bounds.y + bounds.h/2;
+                        this.targetX = this.x; this.targetY = this.y;
+                        this.vx = 0; this.vy = 0;
+                    }
+                }
+            }
+
+            draw() {
+                if (this.alpha <= 0) return;
+                ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color; ctx.beginPath();
+                if (this.shape === 'circle') ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                else if (this.shape === 'rect') ctx.fillRect(this.x - this.size, this.y - this.size, this.size*2, this.size*2);
+                else if (this.shape === 'diamond') { ctx.moveTo(this.x, this.y - this.size); ctx.lineTo(this.x + this.size, this.y); ctx.lineTo(this.x, this.y + this.size); ctx.lineTo(this.x - this.size, this.y); }
+                else if (this.shape === 'poly') { ctx.moveTo(this.x - this.size, this.y - this.size); ctx.lineTo(this.x + this.size, this.y - this.size); ctx.lineTo(this.x + this.size * 0.8, this.y + this.size); ctx.lineTo(this.x - this.size * 0.5, this.y + this.size); }
+                ctx.fill(); ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function loadLevel(idx) {
+            if (idx >= LEVELS.length) { endGame(); return; }
+            currentLevelIdx = idx; const levelData = LEVELS[idx];
+            titleEl.innerText = `Level ${idx + 1}: ${levelData.title}`; descEl.innerText = levelData.desc;
+            hintOverlay.innerText = levelData.hint; hintOverlay.style.display = 'none';
+            isComplete = false; msgOverlay.style.display = "none"; activeToolName = null;
+            waterHeight = 0; 
+
+            toolsGroup.innerHTML = "";
+            levelData.tools.forEach(tool => {
+                const btn = document.createElement("button"); btn.innerText = tool; btn.className = "tool-btn";
+                btn.onclick = () => selectTool(tool, btn); toolsGroup.appendChild(btn);
+            });
+
+            particles = [];
+            if (levelData.container === 'tray') bounds = { x: 150, y: 230, w: 400, h: 150 };
+            else bounds = { x: 250, y: 180, w: 200, h: 250 };
+
+            totalTargetsStart = 0;
+            for (const [type, count] of Object.entries(levelData.particles)) {
+                for(let i=0; i<count; i++) {
+                    let py = Math.random() * (bounds.h - 20) + bounds.y + 10;
+                    if (type === 'oil') py = Math.random() * (bounds.h/2) + bounds.y + 10;
+                    if (type === 'water') py = Math.random() * (bounds.h/2) + bounds.y + (bounds.h/2);
+                    particles.push(new Particle(Math.random() * (bounds.w - 20) + bounds.x + 10, py, type));
+                    
+                    if (levelData.targets[type]) totalTargetsStart++;
+                }
+            }
+            updateProgress();
+        }
+
+        function selectTool(name, btnElement) {
+            activeToolName = name;
+            Array.from(document.querySelectorAll('.tool-btn')).forEach(b => b.classList.remove('active-tool'));
+            btnElement.classList.add('active-tool');
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            if (activeToolName) performToolAction();
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            isMouseDown = false;
+            releaseParticles();
+        });
+
+        function performToolAction() {
+            if (!activeToolName) return;
+            const tool = TOOLS[activeToolName];
+            
+            if (tool.type === "carry") {
+                let count = 0;
+                particles.forEach(p => { if (p.heldByTool) count++; });
+                if (count < tool.capacity) {
+                    particles.forEach(p => {
+                        if (!p.heldByTool && !p.stored && count < tool.capacity) {
+                            let isTarget = Array.isArray(tool.target) ? tool.target.includes(p.type) : tool.target === p.type;
+                            if (isTarget) {
+                                const d = Math.hypot(p.x - mouseX, p.y - mouseY);
+                                if (d < tool.radius) {
+                                    p.heldByTool = true;
+                                    p.heldOffsetX = p.x - mouseX; p.heldOffsetY = p.y - mouseY;
+                                    count++;
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        function releaseParticles() {
+            let targetBin = null;
+            if (mouseX > BIN_COLLECT.x && mouseX < BIN_COLLECT.x + BIN_COLLECT.w && mouseY > BIN_COLLECT.y && mouseY < BIN_COLLECT.y + BIN_COLLECT.h) targetBin = BIN_COLLECT;
+            if (mouseX > BIN_WASTE.x && mouseX < BIN_WASTE.x + BIN_WASTE.w && mouseY > BIN_WASTE.y && mouseY < BIN_WASTE.y + BIN_WASTE.h) targetBin = BIN_WASTE;
+
+            particles.forEach(p => {
+                if (p.heldByTool) {
+                    p.heldByTool = false;
+                    if (targetBin) {
+                        const lvl = LEVELS[currentLevelIdx];
+                        const requiredAction = lvl.targets[p.type]; 
+                        if ((targetBin.type === 'collect' && requiredAction === 'collect') || 
+                            (targetBin.type === 'waste' && requiredAction === 'waste')) {
+                            p.stored = true; p.settled = true; p.targetX = p.x; p.targetY = p.y;
+                            updateProgress();
+                        } else {
+                            p.targetX = bounds.x + 20 + Math.random()*(bounds.w-40);
+                            p.targetY = bounds.y + 20 + Math.random()*(bounds.h-40);
+                            showFeedback("Wrong Bin!", false);
+                        }
+                    } else {
+                        // Drop where released
+                        p.targetX = p.x; p.targetY = p.y;
+                    }
+                }
+            });
+        }
+
+        function gameLoop() {
+            if (isMouseDown && activeToolName) {
+                const tool = TOOLS[activeToolName];
+                
+                // POUR WATER (Level 5)
+                if (tool.type === "pour") {
+                    if (waterHeight < bounds.h) {
+                        waterHeight += 2.0; 
+                        if (waterHeight >= bounds.h - 5) {
+                            particles.forEach(p => {
+                                if (p.type === 'sawdust' && !p.stored) {
+                                    p.stored = true; p.settled = false;
+                                    p.targetX = BIN_WASTE.x + 20 + Math.random() * (BIN_WASTE.w - 40);
+                                    p.targetY = BIN_WASTE.y + 20 + Math.random() * (BIN_WASTE.h - 40);
+                                    updateProgress();
+                                }
+                            });
+                        }
+                    }
+                }
+
+                // FAN (GUIDED PUSH)
+                if (tool.type === "push") {
+                    particles.forEach(p => {
+                        if (p.stored) return;
+                        let isTarget = Array.isArray(tool.target) ? tool.target.includes(p.type) : tool.target === p.type;
+                        if (isTarget) {
+                            const d = Math.hypot(p.x - mouseX, p.y - mouseY);
+                            if (d < tool.radius) {
+                                // AUTO-TARGETING LOGIC (Guided Vacuum)
+                                const targetX = BIN_WASTE.x + BIN_WASTE.w/2;
+                                const targetY = BIN_WASTE.y + BIN_WASTE.h/2;
+                                
+                                const angle = Math.atan2(targetY - p.y, targetX - p.x);
+                                p.vx += Math.cos(angle) * 2; 
+                                p.vy += Math.sin(angle) * 2;
+                                
+                                if (p.x > BIN_WASTE.x && p.y > BIN_WASTE.y && p.y < BIN_WASTE.y + BIN_WASTE.h) {
+                                    const lvl = LEVELS[currentLevelIdx];
+                                    if (lvl.targets[p.type] === 'waste') {
+                                        p.stored = true; p.settled = false;
+                                        p.targetX = BIN_WASTE.x + 50 + Math.random() * (BIN_WASTE.w - 60);
+                                        p.targetY = BIN_WASTE.y + 20 + Math.random() * (BIN_WASTE.h - 40);
+                                        updateProgress();
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                if (tool.type === "drain") {
+                    if (mouseY > bounds.y + bounds.h - 50) {
+                        particles.forEach(p => {
+                            if (p.type === 'water' && p.alpha > 0 && !p.stored) {
+                                p.targetX = BIN_WASTE.x + 50 + Math.random()*40;
+                                p.targetY = BIN_WASTE.y + 50 + Math.random()*40;
+                                if (Math.abs(p.x - p.targetX) < 20) { p.stored = true; p.settled = true; updateProgress(); }
+                            }
+                        });
+                    }
+                }
+
+                if (tool.type === "area") {
+                     particles.forEach(p => {
+                        if (['water', 'saltwater'].includes(p.type) && p.alpha > 0 && !p.stored) {
+                            if (Math.hypot(p.x - mouseX, p.y - mouseY) < tool.radius) {
+                                p.y -= 2; p.alpha -= 0.02; 
+                                if (p.alpha <= 0) {
+                                    if (p.type === 'saltwater') particles.push(new Particle(p.x, bounds.y + bounds.h - 10, 'salt'));
+                                    p.stored = true; updateProgress();
+                                }
+                            }
+                        }
+                     });
+                }
+            }
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateProgress() {
+            const lvl = LEVELS[currentLevelIdx];
+            let done = 0;
+            particles.forEach(p => { if (lvl.targets[p.type] && p.stored) done++; });
+            let pct = (done / totalTargetsStart) * 100;
+            if (pct > 100) pct = 100;
+            progressBar.style.width = pct + "%";
+
+            if (done >= totalTargetsStart && !isComplete) {
+                isComplete = true;
+                showFeedback("Level Complete!", true);
+                const btn = document.createElement("button"); btn.innerText = "Next >>"; btn.className = "next-btn";
+                btn.onclick = () => loadLevel(currentLevelIdx + 1); toolsGroup.appendChild(btn);
+            }
+        }
+
+        function drawScene() {
+            const lvl = LEVELS[currentLevelIdx] || LEVELS[0];
+            
+            if (lvl.container === 'tray') {
+                ctx.fillStyle = "#8B4513"; ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+                ctx.strokeStyle = "#5D4037"; ctx.lineWidth = 8; ctx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+            } else {
+                if (waterHeight > 0) {
+                    ctx.fillStyle = "rgba(52, 152, 219, 0.6)";
+                    ctx.fillRect(bounds.x, (bounds.y + bounds.h) - waterHeight, bounds.w, waterHeight);
+                }
+                ctx.fillStyle = "rgba(200, 230, 255, 0.4)"; ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+                ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 4; ctx.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
+            }
+
+            drawBinBackground(BIN_COLLECT, "rgba(46, 204, 113, 0.2)");
+            drawBinBackground(BIN_WASTE, "rgba(231, 76, 60, 0.2)");
+
+            particles.forEach(p => { p.update(); p.draw(); });
+
+            drawBinOutline(BIN_COLLECT, "#2ecc71"); 
+            drawBinOutline(BIN_WASTE, "#e74c3c");   
+
+            if (activeToolName) drawTool(activeToolName, mouseX, mouseY);
+        }
+
+        function drawBinBackground(bin, color) { ctx.fillStyle = color; ctx.fillRect(bin.x, bin.y, bin.w, bin.h); }
+        function drawBinOutline(bin, colorStr) {
+            ctx.strokeStyle = colorStr; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+            ctx.strokeRect(bin.x, bin.y, bin.w, bin.h); ctx.setLineDash([]);
+            ctx.fillStyle = colorStr; ctx.font = "bold 14px Arial"; ctx.textAlign = "center";
+            ctx.fillText(bin.label, bin.x + bin.w/2, bin.y - 10);
+        }
+
+        function showFeedback(text, isGood) {
+            msgOverlay.innerText = text; msgOverlay.className = isGood ? 'success' : 'error';
+            msgOverlay.style.display = "block"; setTimeout(() => { msgOverlay.style.display = "none"; }, 1500);
+        }
+
+        function drawTool(toolName, x, y) {
+            ctx.save(); ctx.translate(x, y); 
+            if (isMouseDown && TOOLS[toolName].radius) {
+                ctx.beginPath(); ctx.arc(0, 0, TOOLS[toolName].radius, 0, Math.PI*2);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.2)"; ctx.fill();
+                ctx.strokeStyle = "white"; ctx.setLineDash([5,5]); ctx.stroke();
+            }
+            ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 10;
+            let icon = "🔧";
+            if (toolName === "Magnet") icon = "🧲"; if (toolName === "Sieve" || toolName === "Filter") icon = "🕸️";
+            if (toolName === "Fan") icon = "💨"; if (toolName === "Heat") icon = "🔥"; if (toolName === "Add Water") icon = "💧";
+            if (toolName === "Funnel") icon = "🔻"; if (toolName === "Tongs") icon = "🥢";
+            ctx.font = "60px Arial"; ctx.fillText(icon, -30, 30); ctx.restore();
+        }
+        
+        function endGame() {
+            titleEl.innerText = "Master Scientist"; descEl.innerText = "Simulation Complete."; toolsGroup.innerHTML = ""; 
+            ctx.clearRect(0,0,800,450); ctx.fillStyle = "#2ecc71"; ctx.font = "bold 60px Segoe UI"; ctx.textAlign = "center"; ctx.fillText("ALL LEVELS DONE", 400, 200);
+            const btn = document.createElement("button"); btn.innerText = "Play Again"; btn.className = "next-btn";
+            btn.onclick = () => loadLevel(0); toolsGroup.appendChild(btn);
+        }
+
+        loadLevel(0); gameLoop();
+    </script>
 </body>
 </html>
