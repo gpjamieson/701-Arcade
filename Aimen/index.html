@@ -3,98 +3,607 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
+    <title>Trivia Quest: Fight the Monster</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Custom styles for background and font */
         body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
         }
-
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
+        /* Style for the health bar fill */
+        #player-health-fill {
+            background-color: #10B981; /* Green-500 */
         }
-
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
+        #monster-health-fill {
+            background-color: #EF4444; /* Red-500 */
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="scanline"></div>
-
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
+    <div id="game-container" class="bg-white shadow-2xl rounded-xl p-8 w-full max-w-lg transition-all duration-300">
+        <h1 class="text-3xl font-extrabold text-center text-indigo-700 mb-6">Trivia Quest: Fight the Monster!</h1>
         
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
+        <!-- Difficulty Selection Screen -->
+        <div id="difficulty-screen" class="text-center p-6">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-6">Select Your Quest Difficulty</h2>
+            <div class="space-y-4">
+                <button data-difficulty="easy" class="difficulty-btn w-full py-3 bg-green-500 text-white font-bold rounded-lg shadow-md hover:bg-green-600 transition duration-150 transform hover:scale-[1.01]">
+                    Easy (Slime 🦠 - 50 HP)
+                </button>
+                <button data-difficulty="medium" class="difficulty-btn w-full py-3 bg-yellow-500 text-white font-bold rounded-lg shadow-md hover:bg-yellow-600 transition duration-150 transform hover:scale-[1.01]">
+                    Medium (Goblin 👹 - 75 HP)
+                </button>
+                <button data-difficulty="hard" class="difficulty-btn w-full py-3 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 transition duration-150 transform hover:scale-[1.01]">
+                    Hard (Dragon 🐉 - 100 HP)
+                </button>
+            </div>
+        </div>
 
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
+        <!-- Quiz Display -->
+        <div id="quiz-screen" class="hidden">
+            
+            <!-- Coin Bar -->
+            <div id="coin-bar" class="flex justify-end items-center bg-yellow-100 p-2 rounded-lg mb-4 shadow-inner">
+                <span class="text-lg font-bold text-yellow-700 mr-2">Coins:</span>
+                <span id="coin-count" class="text-2xl font-extrabold text-yellow-800">0</span>
+                <span class="text-3xl ml-1">🪙</span>
+            </div>
+            
+            <!-- Battle Area -->
+            <div id="battle-area" class="mt-4 mb-6 p-4 rounded-lg bg-gray-100 border border-gray-300">
+                <div class="flex justify-between items-center mb-2">
+                    <!-- Player Stats -->
+                    <div class="text-center">
+                        <p class="font-bold text-blue-600">You (Hero)</p>
+                        <div id="player-health-bar" class="w-24 h-4 bg-green-200 rounded-full overflow-hidden mb-1">
+                            <div id="player-health-fill" class="h-full transition-all duration-500" style="width: 100%;"></div>
+                        </div>
+                        <p id="player-health-text" class="text-sm font-semibold text-gray-700">100 HP</p>
+                    </div>
+
+                    <!-- Monster Image/Emoji Container -->
+                    <div id="monster-display" class="w-20 h-20 flex items-center justify-center transform hover:scale-110 transition duration-300">
+                        <!-- Image or Emoji will be inserted here by JavaScript -->
+                    </div>
+
+                    <!-- Monster Stats -->
+                    <div class="text-center">
+                        <p id="monster-name" class="font-bold text-red-600">Monster</p>
+                        <div id="monster-health-bar" class="w-24 h-4 bg-red-200 rounded-full overflow-hidden mb-1">
+                            <div id="monster-health-fill" class="h-full transition-all duration-500" style="width: 100%;"></div>
+                        </div>
+                        <p id="monster-health-text" class="text-sm font-semibold text-gray-700">100 HP</p>
+                    </div>
+                </div>
+                <div id="combat-log" class="text-center text-sm font-medium h-6 text-gray-800 pt-2">
+                    <!-- Combat messages here -->
+                </div>
+            </div>
+
+            <div id="question-display" class="bg-indigo-50 p-4 rounded-lg mb-6 text-xl font-semibold text-gray-800">
+                <!-- Question text will be inserted here -->
+                Loading question...
+            </div>
+            
+            <div id="answer-buttons" class="space-y-4">
+                <!-- Answer buttons will be inserted here -->
+            </div>
+
+            <div id="feedback-message" class="mt-4 text-center font-bold h-6">
+                <!-- Feedback (Correct/Incorrect) will be inserted here -->
+            </div>
+
+            <button id="next-button" class="mt-8 w-full py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.01] opacity-50 cursor-not-allowed" disabled>
+                Next Challenge
+            </button>
+        </div>
+
+        <!-- Score/Results Display -->
+        <div id="score-screen" class="hidden text-center p-6">
+            <h2 class="text-3xl font-bold text-indigo-700 mb-4">Quiz Complete!</h2>
+            <p class="text-xl text-gray-700 mb-8">You scored: <span id="final-score" class="text-4xl font-extrabold text-green-600">0</span> out of <span id="total-questions" class="text-gray-500">0</span></p>
+            <button id="restart-button" class="py-3 px-6 bg-green-600 text-white font-bold rounded-lg shadow-lg hover:bg-green-700 transition duration-150">
+                Play Again
+            </button>
         </div>
     </div>
 
+    <script>
+        // --- Game Data: Questions Array (Focused on Solutes, Solvents, and Solutions) ---
+        const questions = [
+            // --- Easy Questions ---
+            {
+                question: "In a solution, which component is present in the largest amount and does the dissolving?",
+                answers: ["Solute", "Suspension", "Solvent", "Emulsion"],
+                correctAnswer: "Solvent",
+                difficulty: "easy"
+            },
+            {
+                question: "You drop a pinch of salt into a beaker of water. The salt is acting as the...",
+                answers: ["Solute", "Substrate", "Catalyst", "Residue"],
+                correctAnswer: "Solute",
+                difficulty: "easy"
+            },
+            {
+                question: "When metal elements are mixed together and dissolved while molten (like bronze), the resulting metal mixture is a type of what?",
+                answers: ["Suspension", "Colloid", "Solution", "Precipitate"],
+                correctAnswer: "Solution",
+                difficulty: "easy"
+            },
+            {
+                question: "If you mix lemonade powder into a pitcher of cold water, which substance is the solvent?",
+                answers: ["The Lemonade Powder", "The Pitcher", "The Air", "The Water"],
+                correctAnswer: "The Water",
+                difficulty: "easy"
+            },
+            {
+                question: "If air is a solution of gases, which gas makes up the largest proportion and is usually considered the solvent?",
+                answers: ["Oxygen", "Carbon Dioxide", "Argon", "Nitrogen"],
+                correctAnswer: "Nitrogen",
+                difficulty: "easy"
+            },
+            {
+                question: "True or False: An alloy, like brass (copper and zinc), is a solid solution where the solvent is a solid.",
+                answers: ["True", "False", "Only if Saturated", "Only if Dilute"],
+                correctAnswer: "True",
+                difficulty: "easy"
+            },
+
+            // --- Medium Questions ---
+            {
+                question: "Due to its ability to dissolve many polar and ionic compounds, which common household chemical is nicknamed the 'universal solvent'?",
+                answers: ["Ethanol (Drinking Alcohol)", "Cooking Oil", "Water", "Vinegar (Acetic Acid)"],
+                correctAnswer: "Water",
+                difficulty: "medium"
+            },
+            {
+                question: "You have a glass of sweet tea. If you add more sugar, and it all dissolves easily, the original tea was...",
+                answers: ["Saturated", "Supersaturated", "Concentrated", "Unsaturated"],
+                correctAnswer: "Unsaturated",
+                difficulty: "medium"
+            },
+            {
+                question: "A mixture that contains only a small amount of solute relative to the amount of solvent is described by which term?",
+                answers: ["Saturated", "Supersaturated", "Concentrated", "Dilute"],
+                correctAnswer: "Dilute",
+                difficulty: "medium"
+            },
+            {
+                question: "If you have a solution where solid solute crystals are sitting undissolved at the bottom, the solution is likely...",
+                answers: ["Unsaturated", "Supersaturated", "Dilute", "Saturated"],
+                correctAnswer: "Saturated",
+                difficulty: "medium"
+            },
+            {
+                question: "Which process involves gently heating the solvent and stirring to ensure the solid solute dissolves completely and quickly?",
+                answers: ["Cooling and Resting", "Heating and Stirring", "Pressurizing and Freezing", "Shaking and Insulating"],
+                correctAnswer: "Heating and Stirring",
+                difficulty: "medium"
+            },
+            {
+                question: "The rule that 'polar solvents dissolve polar solutes' and 'non-polar solvents dissolve non-polar solutes' is summarized by what phrase?",
+                answers: ["Law of Conservation of Mass", "Like dissolves like", "Principle of Archimedes", "Boyle's Law"],
+                correctAnswer: "Like dissolves like",
+                difficulty: "medium"
+            },
+            {
+                question: "Which process can separate a non-volatile solute (like salt) from its solvent (water) by boiling the solvent away?",
+                answers: ["Filtration", "Decanting", "Evaporation", "Centrifugation"],
+                correctAnswer: "Evaporation",
+                difficulty: "medium"
+            },
+
+            // --- Hard Questions ---
+            {
+                question: "What term describes two liquids, such as water and gasoline, that do *not* mix or dissolve into each other, remaining separate layers?",
+                answers: ["Miscible", "Homogeneous", "Immiscible", "Heterogeneous"],
+                correctAnswer: "Immiscible",
+                difficulty: "hard"
+            },
+            {
+                question: "If you need to clean up a grease spill, which common non-polar solvent would work best, following the 'like dissolves like' rule?",
+                answers: ["Water ($H_2O$)", "Rubbing Alcohol ($C_3H_8O$)", "Turpentine (Oil-based solvent)", "Acetic Acid ($CH_3COOH$)"],
+                correctAnswer: "Turpentine (Oil-based solvent)", // Turpentine is non-polar, dissolving oil/grease.
+                difficulty: "hard"
+            },
+            {
+                question: "When preparing rock candy, you dissolve more solute than is normally possible in a hot solution, then cool it carefully. What state is this unstable solution in?",
+                answers: ["Unsaturated", "Polar", "Supersaturated", "Ionic"],
+                correctAnswer: "Supersaturated",
+                difficulty: "hard"
+            },
+            {
+                question: "The concentration of a beverage is often given as the mass of solute dissolved per 100 grams of solution. What scientific term describes this measure of solute capacity?",
+                answers: ["Concentration", "Molarity", "Saturation Point", "Solubility"],
+                correctAnswer: "Solubility",
+                difficulty: "hard"
+            },
+            {
+                question: "Why does crushing a large crystal of a solid solute increase the speed at which it dissolves in a liquid solvent?",
+                answers: ["It cools the solvent", "It changes the solute's mass", "It increases the surface area", "It increases the density"],
+                correctAnswer: "It increases the surface area",
+                difficulty: "hard"
+            },
+            {
+                question: "When you open a can of soda, the pressure is suddenly released. What happens to the solubility of the carbon dioxide gas (the solute) in the liquid?",
+                answers: ["It increases instantly", "It decreases instantly", "It is unaffected by pressure", "It only changes with temperature"],
+                correctAnswer: "It decreases instantly", // Lower pressure = less gas solubility (Henry's Law)
+                difficulty: "hard"
+            }
+        ];
+        
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let coins = 0; // NEW: Initialize coins
+        let currentQuizQuestions = []; // Stores the filtered questions for the current game
+        
+        // --- Combat State ---
+        let playerHealth = 100;
+        let monsterHealth = 0;
+        const basePlayerDamage = 25; // Damage dealt on correct answer
+        const monsterDamage = 20; // Damage received on incorrect answer
+        
+        // Coin rewards definition
+        const coinRewards = {
+            easy: 1,
+            medium: 3,
+            hard: 5
+        };
+
+        // --- DOM Elements ---
+        const difficultyScreen = document.getElementById('difficulty-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const scoreScreen = document.getElementById('score-screen');
+        const questionDisplay = document.getElementById('question-display');
+        const answerButtonsContainer = document.getElementById('answer-buttons');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextButton = document.getElementById('next-button');
+        const restartButton = document.getElementById('restart-button');
+        const finalScoreSpan = document.getElementById('final-score');
+        const totalQuestionsSpan = document.getElementById('total-questions');
+        const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+        
+        // --- Combat DOM Elements ---
+        const healthFillPlayer = document.getElementById('player-health-fill');
+        const healthTextPlayer = document.getElementById('player-health-text');
+        const healthFillMonster = document.getElementById('monster-health-fill');
+        const healthTextMonster = document.getElementById('monster-health-text');
+        const monsterNameDisplay = document.getElementById('monster-name');
+        const monsterEmojiDisplay = document.getElementById('monster-display');
+        const combatLog = document.getElementById('combat-log');
+        const coinCountDisplay = document.getElementById('coin-count'); // Coin display element
+        
+        // --- Helper Functions ---
+
+        // Simple function to shuffle an array (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Function to update coin display
+        function updateCoinDisplay() {
+            coinCountDisplay.textContent = coins;
+        }
+        
+        function getMonsterStats(difficulty) {
+            // Added attackName property to the monster stats
+            if (difficulty === 'easy') return { name: "Slime", visual: "🦠", health: 50, isImage: false, attackName: "Slime Slaps" };
+            if (difficulty === 'medium') return { name: "Goblin", visual: "👹", health: 75, isImage: false, attackName: "Gnashing Teeth" };
+            if (difficulty === 'hard') return {
+                name: "Dragon",
+                visual: "🐉", 
+                health: 100, 
+                isImage: false, 
+                attackName: "Breathes Fire"
+            };
+            return { name: "Unknown Foe", visual: "❓", health: 60, isImage: false, attackName: "Attacks" };
+        }
+
+        function updateHealthDisplay() {
+            const maxPlayerHealth = 100; // Fixed max player health
+            let maxMonsterHealth = 100; 
+
+            // Safely get max monster health based on the current quiz's difficulty
+            if (currentQuizQuestions.length > 0) {
+                 maxMonsterHealth = getMonsterStats(currentQuizQuestions[0].difficulty).health;
+            }
+
+            // Player Health
+            const playerPercent = Math.max(0, (playerHealth / maxPlayerHealth) * 100);
+            healthFillPlayer.style.width = `${playerPercent}%`;
+            healthTextPlayer.textContent = `${Math.max(0, playerHealth)} HP`;
+            
+            // Monster Health
+            const monsterPercent = Math.max(0, (monsterHealth / maxMonsterHealth) * 100);
+            healthFillMonster.style.width = `${monsterPercent}%`;
+            healthTextMonster.textContent = `${Math.max(0, monsterHealth)} HP`;
+        }
+
+        function startMonsterEncounter(difficulty) {
+            const stats = getMonsterStats(difficulty);
+            monsterHealth = stats.health;
+            monsterNameDisplay.textContent = stats.name;
+
+            // Clear previous content
+            monsterEmojiDisplay.innerHTML = ''; 
+
+            if (stats.isImage) {
+                // If it's an image, create and append the <img> tag
+                const img = document.createElement('img');
+                img.src = stats.visual;
+                img.alt = stats.name;
+                // Tailwind classes for size and style
+                img.classList.add('w-full', 'h-full', 'object-contain', 'rounded-lg', 'shadow-lg');
+                monsterEmojiDisplay.appendChild(img);
+                // Remove text-size class when displaying an image
+                monsterEmojiDisplay.classList.remove('text-5xl');
+            } else {
+                // If it's an emoji, set the text content
+                monsterEmojiDisplay.textContent = stats.visual;
+                // Add text-size class for emojis
+                monsterEmojiDisplay.classList.add('text-5xl');
+            }
+
+            updateHealthDisplay();
+            combatLog.textContent = `A wild ${stats.name} appeared! Fight it with trivia!`;
+            combatLog.classList.remove('text-red-600', 'text-green-600', 'text-blue-600');
+            combatLog.classList.add('text-gray-800');
+        }
+
+        function showMonsterDefeated() {
+            // Updated to only handle the visual log update
+            combatLog.textContent = `VICTORY! ${monsterNameDisplay.textContent} Defeated! You proceed to the next challenge!`;
+            combatLog.classList.remove('text-red-600', 'text-green-600', 'text-gray-800');
+            combatLog.classList.add('text-blue-600');
+            // The button enabling logic is now handled instantly in handleAnswerClick
+        }
+
+        function processCombat(isCorrect) {
+            // Get the current difficulty (since all questions in the current quiz share the same monster/difficulty)
+            const currentDifficulty = currentQuizQuestions.length > 0 ? currentQuizQuestions[0].difficulty : 'easy';
+            const monsterStats = getMonsterStats(currentDifficulty);
+            const attackName = monsterStats.attackName;
+
+            if (isCorrect) {
+                monsterHealth -= basePlayerDamage;
+                combatLog.textContent = `CRITICAL HIT! You dealt ${basePlayerDamage} damage to the ${monsterNameDisplay.textContent}!`;
+                combatLog.classList.remove('text-red-600', 'text-gray-800', 'text-blue-600');
+                combatLog.classList.add('text-green-600');
+            } else {
+                playerHealth -= monsterDamage;
+                // Use the specific attack name
+                combatLog.textContent = `The ${monsterNameDisplay.textContent}'s ${attackName} hits you for ${monsterDamage} damage!`;
+                combatLog.classList.remove('text-green-600', 'text-gray-800', 'text-blue-600');
+                combatLog.classList.add('text-red-600');
+            }
+            
+            updateHealthDisplay();
+
+            // Check for game-ending conditions
+            if (playerHealth <= 0) {
+                // Keep delay for visual game over transition
+                setTimeout(() => showGameOver(false), 500); // Player defeated
+            } else if (monsterHealth <= 0) {
+                // Call the monster defeat log instantly
+                showMonsterDefeated(); 
+            }
+        }
+        
+        function showGameOver(wonQuiz) {
+            quizScreen.classList.add('hidden');
+            scoreScreen.classList.remove('hidden');
+            
+            const h2 = document.querySelector('#score-screen h2');
+            const p = document.querySelector('#score-screen p');
+
+            if (wonQuiz) {
+                h2.textContent = "Victory Achieved!";
+                h2.classList.remove('text-red-600');
+                h2.classList.add('text-indigo-700');
+                p.innerHTML = `You completed the quest and earned <span class="text-4xl font-extrabold text-yellow-600">${coins} 🪙</span> and scored: <span id="final-score" class="text-4xl font-extrabold text-green-600">${score}</span> out of <span id="total-questions" class="text-gray-500">${currentQuizQuestions.length}</span>`;
+            } else {
+                h2.textContent = `Quest Failed! The ${monsterNameDisplay.textContent} won!`;
+                h2.classList.remove('text-indigo-700');
+                h2.classList.add('text-red-600');
+                p.innerHTML = `Your final score was: <span id="final-score" class="text-4xl font-extrabold text-red-600">${score}</span>. Try again!`;
+            }
+            
+            finalScoreSpan.textContent = score;
+            totalQuestionsSpan.textContent = currentQuizQuestions.length;
+        }
+        
+        // --- Game Flow Functions ---
+        
+        function showDifficultySelection() {
+            difficultyScreen.classList.remove('hidden');
+            quizScreen.classList.add('hidden');
+            scoreScreen.classList.add('hidden');
+        }
+
+        function setDifficultyAndStartGame(difficulty) {
+            // Filter questions based on selected difficulty
+            currentQuizQuestions = questions.filter(q => q.difficulty === difficulty);
+
+            if (currentQuizQuestions.length === 0) {
+                console.error("Error: No questions found for this difficulty level!");
+                showDifficultySelection();
+                return;
+            }
+
+            startGame();
+        }
+
+        function startGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            coins = 0; // Reset coins
+            playerHealth = 100; // Reset player health
+            
+            // Randomize the filtered questions
+            shuffleArray(currentQuizQuestions); 
+
+            // Update initial coin display
+            updateCoinDisplay();
+
+            // Switch to the quiz screen
+            difficultyScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            scoreScreen.classList.add('hidden');
+            
+            // Start the first monster encounter
+            // Since all questions for one difficulty fight the same monster, we can use the difficulty of the first question
+            startMonsterEncounter(currentQuizQuestions[0].difficulty);
+            
+            showQuestion();
+        }
+
+        function showQuestion() {
+            // Check if player has already been defeated before showing the next question
+            if (playerHealth <= 0) {
+                // If player is defeated, show game over screen immediately
+                showGameOver(false);
+                return;
+            }
+
+            // Reset UI for new question
+            answerButtonsContainer.innerHTML = '';
+            feedbackMessage.textContent = '';
+            
+            // The Next button is only enabled when the monster is defeated OR the player runs out of questions
+            nextButton.disabled = true;
+            nextButton.classList.add('opacity-50', 'cursor-not-allowed');
+            nextButton.classList.remove('hover:bg-indigo-700', 'transform', 'hover:scale-[1.01]');
+
+            if (currentQuestionIndex >= currentQuizQuestions.length) {
+                showGameOver(true); // Player won the quest!
+                return;
+            }
+            
+            // If the monster was just defeated, restart the encounter for the next question
+            if (monsterHealth <= 0) {
+                 // Restart the encounter with the same stats as the first question in the current set
+                 startMonsterEncounter(currentQuizQuestions[0].difficulty); 
+            }
+            
+            const currentQuestion = currentQuizQuestions[currentQuestionIndex];
+            questionDisplay.textContent = `${currentQuestionIndex + 1}. ${currentQuestion.question}`;
+
+            // Create and display answer buttons
+            const shuffledAnswers = shuffleArray([...currentQuestion.answers]); // Shuffle answers
+            shuffledAnswers.forEach(answer => {
+                const button = document.createElement('button');
+                button.textContent = answer;
+                button.classList.add(
+                    'answer-btn',
+                    'w-full', 'py-3', 'text-gray-700', 'bg-indigo-100', 'rounded-lg', 
+                    'shadow-sm', 'font-medium', 'text-left', 'px-4',
+                    'hover:bg-indigo-200', 'transition', 'duration-100', 'focus:outline-none'
+                );
+                button.addEventListener('click', handleAnswerClick);
+                answerButtonsContainer.appendChild(button);
+            });
+        }
+
+        function handleAnswerClick(event) {
+            // Check if player is already defeated (should not happen, but safe guard)
+            if (playerHealth <= 0) return;
+            
+            // Disable all answer buttons after one is clicked
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.removeEventListener('click', handleAnswerClick);
+            });
+
+            const selectedAnswer = event.target.textContent;
+            const currentQuestion = currentQuizQuestions[currentQuestionIndex];
+            
+            // Check the answer
+            const isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+
+            if (isCorrect) {
+                score++;
+                
+                // Award coins based on difficulty
+                const difficulty = currentQuestion.difficulty;
+                const reward = coinRewards[difficulty] || 0;
+                coins += reward;
+                updateCoinDisplay();
+
+                event.target.classList.remove('bg-indigo-100', 'hover:bg-indigo-200');
+                event.target.classList.add('bg-green-500', 'text-white', 'shadow-md');
+                // Update feedback message to include coin reward
+                feedbackMessage.textContent = `Correct! You gained ${reward} coin(s)! Time to strike!`; 
+            } else {
+                event.target.classList.remove('bg-indigo-100', 'hover:bg-indigo-200');
+                event.target.classList.add('bg-red-500', 'text-white', 'shadow-md');
+                feedbackMessage.textContent = `Incorrect. Prepare for the monster's attack!`;
+                
+                // Highlight the correct answer
+                document.querySelectorAll('.answer-btn').forEach(btn => {
+                    if (btn.textContent === currentQuestion.correctAnswer) {
+                        btn.classList.add('bg-green-300', 'text-gray-800');
+                    }
+                });
+            }
+
+            // Process the combat damage
+            processCombat(isCorrect);
+            
+            // --- Logic for Advancement ---
+            
+            if (playerHealth > 0) {
+                if (monsterHealth <= 0) {
+                    // 1. Monster DEFEATED: Enable "Next Challenge" button.
+                    nextButton.disabled = false;
+                    nextButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    nextButton.classList.add('hover:bg-indigo-700', 'transform', 'hover:scale-[1.01]');
+                } else {
+                    // 2. Combat CONTINUES: Automatically advance to the next question 
+                    //    after a short delay (1.5s) so the user can see the combat log.
+                    setTimeout(() => {
+                        currentQuestionIndex++;
+                        showQuestion();
+                    }, 1500); 
+                }
+            }
+        }
+
+        function handleNextClick() {
+            // This is ONLY called when the monster is defeated.
+            currentQuestionIndex++;
+            showQuestion();
+        }
+        
+        function handleRestartClick() {
+            // Reset player health display before going back to selection screen
+            playerHealth = 100;
+            updateHealthDisplay();
+            showDifficultySelection();
+        }
+
+
+        // --- Event Listeners ---
+        nextButton.addEventListener('click', handleNextClick);
+        restartButton.addEventListener('click', handleRestartClick); 
+        
+        // Add event listeners for difficulty buttons
+        difficultyButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const difficulty = e.target.dataset.difficulty;
+                setDifficultyAndStartGame(difficulty);
+            });
+        });
+
+        // Initialize the game by showing difficulty selection
+        window.onload = showDifficultySelection;
+
+    </script>
 </body>
 </html>

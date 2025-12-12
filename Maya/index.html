@@ -1,100 +1,281 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Awaiting Upload</title>
-    <style>
-        body {
-            background-color: #000;
-            color: #ff003c; /* Red for offline status */
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            overflow: hidden;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Snow Rider — Solvability Quiz Game</title>
+  <style>
+    :root{--bg:#0b1220;--snow:#eaf6ff;--accent:#3ddc97;--panel:rgba(255,255,255,0.06)}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:linear-gradient(180deg,#071021 0%, #0b1630 100%);color:var(--snow)}
+    #gameWrap{max-width:900px;margin:24px auto;padding:12px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:var(--panel);border:1px solid rgba(255,255,255,0.06);color:var(--snow);padding:8px 10px;border-radius:10px;cursor:pointer}
+    canvas{display:block;width:100%;height:540px;border-radius:12px;background:linear-gradient(#0e1b2f,#071428)}
+    .hud{display:flex;gap:12px;align-items:center;margin-top:8px}
+    .hud .item{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px}
 
-        .container {
-            border: 2px solid #ff003c;
-            padding: 40px;
-            box-shadow: 0 0 20px #ff003c;
-            max-width: 600px;
-            background: rgba(20, 0, 0, 0.8);
-        }
+    /* Question modal */
+    #questionModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);min-width:320px;background:rgba(10,16,28,0.96);border-radius:14px;padding:18px;box-shadow:0 6px 30px rgba(0,0,0,0.6);display:none;z-index:40;border:1px solid rgba(255,255,255,0.06)}
+    #questionModal h2{margin:0 0 8px 0;font-size:18px}
+    .answers{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+    .answer-btn{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);cursor:pointer}
+    .answer-btn:hover{transform:translateY(-2px)}
+    #overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;z-index:30}
 
-        h1 {
-            font-size: 3rem;
-            margin: 0 0 20px 0;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #330000;
-        }
-
-        p {
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .instruction {
-            margin-top: 30px;
-            font-size: 1rem;
-            color: #fff;
-            background: #333;
-            padding: 8px 15px;
-            display: inline-block;
-            border-radius: 4px;
-            border: 1px solid #555;
-        }
-
-        .blink {
-            animation: blinker 1s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% { opacity: 0; }
-        }
-
-        /* Scanline effect for retro vibe */
-        .scanline {
-            width: 100%;
-            height: 100px;
-            z-index: 10;
-            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 60, 0.1) 50%, rgba(0,0,0,0) 100%);
-            opacity: 0.1;
-            position: absolute;
-            bottom: 100%;
-            animation: scanline 10s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes scanline {
-            0% { bottom: 100%; }
-            100% { bottom: -100%; }
-        }
-    </style>
+    footer{margin-top:12px;font-size:13px;color:rgba(234,246,255,0.7)}
+    @media (max-width:600px){canvas{height:420px}}
+  </style>
 </head>
 <body>
+  <div id="gameWrap">
+    <header>
+      <h1>Snow Rider — Quiz on Collision</h1>
+      <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn">Pause</button>
+        <button id="muteBtn">Mute</button>
+      </div>
+    </header>
 
-    <div class="scanline"></div>
+    <canvas id="gameCanvas" width="1200" height="700"></canvas>
 
-    <div class="container">
-        <!-- DO NOT CHANGE THIS TEXT: The Main Arcade scans for "SYSTEM OFFLINE" -->
-        <h1>SYSTEM OFFLINE</h1>
-        
-        <p>
-            User has not uploaded game cartridge yet.<br>
-            Please stand by...<span class="blink">_</span>
-        </p>
-
-        <!-- Tells the user how to get back without using a recursive link -->
-        <div class="instruction">
-            CLICK THE <strong>EXIT GAME</strong> BUTTON ABOVE TO RETURN
-        </div>
+    <div class="hud">
+      <div class="item">Score: <span id="score">0</span></div>
+      <div class="item">Level: <span id="level">1</span></div>
+      <div class="item">Lives: <span id="lives">3</span></div>
+      <div class="item">Speed: <span id="speed">1</span></div>
     </div>
 
+    <footer>Controls: ← / → to move, Space to jump. Touch: tap left/right side of screen. Answer quiz to continue when you hit an obstacle.</footer>
+  </div>
+
+  <div id="overlay"></div>
+  <div id="questionModal" role="dialog" aria-modal="true">
+    <h2 id="qText">Question</h2>
+    <div id="qHint" style="font-size:13px;color:rgba(234,246,255,0.7);">Solve to continue</div>
+    <div class="answers" id="answers"></div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const muteBtn = document.getElementById('muteBtn');
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const livesEl = document.getElementById('lives');
+  const speedEl = document.getElementById('speed');
+
+  const overlay = document.getElementById('overlay');
+  const qModal = document.getElementById('questionModal');
+  const qText = document.getElementById('qText');
+  const qHint = document.getElementById('qHint');
+  const answersWrap = document.getElementById('answers');
+
+  // ---- NEW SOUNDS ----
+  const sndHit = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_6c403c4b19.mp3');
+  const sndCorrect = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_4bfbeb2c1a.mp3');
+  const sndWrong = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_4e61327f0b.mp3');
+  const sndJump = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_2ca7aaa0c2.mp3');
+
+  let W = canvas.width = 1200;
+  let H = canvas.height = 700;
+  let running = false;
+  let paused = false;
+  let muted = false;
+
+  let player = {x:200,y:520,w:60,h:60,vy:0,onGround:true};
+  let gravity = 1.9;
+  let obstacles = [];
+  let particles = [];
+  let spawnTimer = 0;
+  let spawnInterval = 120;
+  let baseSpeed = 4;
+  let speedMultiplier = 1;
+  let frame = 0;
+  let score = 0;
+  let level = 1;
+  let lives = 3;
+
+  let awaitingAnswer = false;
+  let currentQuestion = null;
+
+  // ---- REPLACED QUESTIONS (SOLUBILITY ONLY, EASY) ----
+  const solubilityData = [
+    {q:'Is NaCl soluble in water?', a:'Yes', c:['Yes','No']},
+    {q:'Is AgCl soluble in water?', a:'No', c:['Yes','No']},
+    {q:'Is sugar (sucrose) soluble in water?', a:'Yes', c:['Yes','No']},
+    {q:'Does salt dissolve faster in hot water?', a:'Yes', c:['Yes','No']},
+    {q:'Is sand soluble in water?', a:'No', c:['Yes','No']},
+    {q:'Is baking soda soluble in water?', a:'Yes', c:['Yes','No']},
+    {q:'Does stirring make solutes dissolve faster?', a:'Yes', c:['Yes','No']}
+  ];
+  function randomQuestion(){ return solubilityData[Math.floor(Math.random()*solubilityData.length)]; }
+
+  function spawnObstacle(){
+    const h = 40 + Math.random()*60;
+    const type = Math.random()<0.5 ? 'rock' : 'tree';
+    obstacles.push({x:W+80,y:580-h,w:40,h,tag:type});
+  }
+
+  function update(){
+    if(!running || paused || awaitingAnswer) return;
+    frame++;
+
+    // more levels
+    if(frame % 1000 === 0){ level++; speedMultiplier += 0.25; spawnInterval = Math.max(60, spawnInterval - 5) }
+
+    spawnTimer++;
+    if(spawnTimer>spawnInterval){ spawnTimer=0; spawnObstacle(); }
+
+    player.vy += gravity;
+    player.y += player.vy;
+    if(player.y > 520){ player.y=520; player.vy=0; player.onGround=true }
+
+    for(let i=obstacles.length-1;i>=0;i--){
+      obstacles[i].x -= baseSpeed * speedMultiplier;
+      if(obstacles[i].x + obstacles[i].w < -100) obstacles.splice(i,1);
+    }
+
+    for(let ob of obstacles){
+      if(rectIntersect(player,ob)){
+        if(!muted) sndHit.play();
+        awaitQuestionFor(ob);
+        break;
+      }
+    }
+
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--; p.vy += 0.1;
+      if(p.life<=0) particles.splice(i,1);
+    }
+
+    score += 0.03 * speedMultiplier;
+    scoreEl.textContent = Math.floor(score);
+    levelEl.textContent = level;
+    livesEl.textContent = lives;
+    speedEl.textContent = (speedMultiplier).toFixed(2);
+  }
+
+  function rectIntersect(a,b){ return !(a.x+a.w < b.x || a.x > b.x+b.w || a.y+a.h < b.y || a.y > b.y+b.h); }
+
+  function awaitQuestionFor(ob){
+    awaitingAnswer = true;
+    paused = true;
+    currentQuestion = randomQuestion();
+    showQuestionModal(currentQuestion, (correct) => {
+      overlay.style.display='none'; qModal.style.display='none';
+      awaitingAnswer = false; paused = false;
+
+      if(correct){
+        if(!muted) sndCorrect.play();
+        const idx = obstacles.indexOf(ob); if(idx!==-1) obstacles.splice(idx,1);
+        score += 30 * level;
+        createParticles(ob.x, ob.y, 20);
+      } else {
+        if(!muted) sndWrong.play();
+        lives -= 1;
+        createParticles(player.x, player.y, 30);
+        if(lives<=0){ gameOver(); }
+      }
+    });
+  }
+
+  function showQuestionModal(q,cb){
+    overlay.style.display='block'; qModal.style.display='block';
+    qText.textContent = q.q;
+    qHint.textContent = 'Solubility Question';
+
+    answersWrap.innerHTML = '';
+    q.c.forEach(choice => {
+      const b = document.createElement('button');
+      b.className='answer-btn';
+      b.textContent=choice;
+      b.onclick = () => cb(choice===q.a);
+      answersWrap.appendChild(b);
+    });
+  }
+
+  function createParticles(x,y,n){
+    for(let i=0;i<n;i++){
+      particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-1.5)*6,life:20+Math.random()*30})
+    }
+  }
+
+  function gameOver(){ running=false; paused=true; alert('Game over! Score: '+Math.floor(score)); resetGame(); }
+
+  function resetGame(){
+    player={x:200,y:520,w:60,h:60,vy:0,onGround:true}; obstacles=[]; particles=[];
+    frame=0; score=0; level=1; lives=3; speedMultiplier=1; spawnInterval=120;
+    running=false; paused=false;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const g = ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#0b2036'); g.addColorStop(1,'#041426');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+    drawMountains();
+
+    ctx.fillStyle = '#0b2b2f'; ctx.fillRect(0,580,W,120);
+
+    for(let ob of obstacles){ drawObstacle(ob); }
+
+    drawPlayer();
+
+    for(let p of particles){ ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fillRect(p.x,p.y,3,3); }
+
+    if(!running){ ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#fff'; ctx.font='34px Arial'; ctx.fillText('PAUSED', W/2-70, H/2);
+    }
+  }
+
+  function drawObstacle(ob){
+    if(ob.tag==='rock'){
+      ctx.fillStyle='#777';
+      ctx.fillRect(ob.x, ob.y-ob.h/2, ob.w, ob.h);
+    } else {
+      ctx.fillStyle='#0f7a2a';
+      ctx.fillRect(ob.x, ob.y-ob.h/2, ob.w, ob.h);
+    }
+  }
+
+  function drawPlayer(){
+    ctx.save(); ctx.translate(player.x+player.w/2, player.y+player.h/2);
+    ctx.fillStyle='#3ddc97'; ctx.fillRect(-player.w/2,-player.h/2,player.w,player.h);
+    ctx.restore();
+  }
+
+  function drawMountains(){
+    ctx.fillStyle='#0f2d42'; ctx.beginPath(); ctx.moveTo(0,520); ctx.lineTo(160,320); ctx.lineTo(340,520); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#0b2840'; ctx.beginPath(); ctx.moveTo(280,520); ctx.lineTo(420,300); ctx.lineTo(640,520); ctx.closePath(); ctx.fill();
+  }
+
+  function loop(){ update(); draw(); requestAnimationFrame(loop); }
+
+  window.addEventListener('keydown', e => {
+    if(e.code==='Space' && player.onGround){ player.vy=-18; player.onGround=false; if(!muted) sndJump.play(); }
+    if(e.code==='ArrowLeft'){ player.x=Math.max(20,player.x-12); }
+    if(e.code==='ArrowRight'){ player.x=Math.min(W-player.w-20,player.x+12); }
+  });
+
+  canvas.addEventListener('touchstart', e => {
+    const t=e.touches[0]; const rect=canvas.getBoundingClientRect(); const x=t.clientX-rect.left;
+    if(x < rect.width/2) player.x=Math.max(20,player.x-18);
+    else player.x=Math.min(W-player.w-20,player.x+18);
+  });
+
+  startBtn.onclick = () => { if(!running){ running=true; paused=false; resetGame(); } };
+  pauseBtn.onclick = () => { paused=!paused; }
+  muteBtn.onclick = () => { muted=!muted; muteBtn.textContent = muted? 'Unmute':'Mute'; }
+
+  loop();
+})();
+</script>
 </body>
 </html>

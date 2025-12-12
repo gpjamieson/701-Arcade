@@ -79,10 +79,11 @@
                 const privateDocRef = doc(db, `artifacts/${appId}/users/${userId}/game_scores/solutionMixerScore`);
                 await setDoc(privateDocRef, { nickname: nickname, lastUpdated: new Date() }, { merge: true });
                 window.nickname = nickname;
-                // Update UI immediately (called in main script)
+                return true; // Indicate success
             } catch (error) {
                 console.error("Error saving nickname:", error);
                 window.displayMessage("Error saving nickname. Try again.", 'error', 5000);
+                return false; // Indicate failure
             }
         }
         window.saveNickname = saveNickname;
@@ -314,9 +315,14 @@
             box-shadow: var(--shadow-pop);
         }
 
-        #play-button:hover {
+        #play-button:hover:not(:disabled) {
             background-color: #059669;
             transform: translateY(-2px);
+        }
+        #play-button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
         }
         /* --- End Menu and Overlay Styles --- */
 
@@ -568,18 +574,6 @@
             max-width: 250px;
             font-size: 1rem;
         }
-        #save-nickname-btn {
-            background-color: var(--color-success);
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        #save-nickname-btn:hover {
-            background-color: #059669;
-        }
         #current-nickname {
             font-weight: 700;
             color: #3b82f6;
@@ -683,8 +677,8 @@
             <div id="nickname-area">
                 <p>Your Current Nickname: <span id="current-nickname">Guest</span></p>
                 <div id="nickname-setup">
-                    <input type="text" id="nickname-input" placeholder="Enter your unique nickname (max 10 chars)" maxlength="10">
-                    <button id="save-nickname-btn"><i class="fas fa-user-edit"></i> Set</button>
+                    <input type="text" id="nickname-input" placeholder="Enter new unique nickname (max 10 chars)" maxlength="10">
+                    <!-- Removed separate 'Set' button - logic is now in PLAY GAME -->
                 </div>
             </div>
             
@@ -702,7 +696,7 @@
             </div>
 
 
-            <button id="play-button">PLAY GAME <i class="fas fa-play"></i></button>
+            <button id="play-button" disabled>LOADING... (Waiting for Firebase Auth)</button>
 
             <div id="leaderboard-container" style="margin-top: 50px;">
                 <h2><i class="fas fa-trophy"></i> Global Leaderboard</h2>
@@ -758,7 +752,7 @@
     </div>
 
     <div class="footer-info">
-        <p><strong>Remember:</strong> The <strong>Solute</strong> is the substance being dissolved. The <strong>Solvent</strong> is the substance doing the dissolving. [Image of Solute and Solvent components]</p>
+        <p><strong>Remember:</strong> The <strong>Solute</strong> is the substance being dissolved. The <strong>Solvent</strong> is the substance doing the dissolving. </p>
         <p><strong>New Scoring System:</strong></p>
         <ul style="list-style: none; padding-left: 0; margin-top: 5px; text-align: center;">
             <li><i class="fas fa-clock"></i> **Correct:** &lt; 2.5s: <strong>20 pts</strong> | 2.5s-5s: <strong>10 pts</strong> | 5s-8s: <strong>5 pts</strong> | &gt; 8s: <strong>2 pts</strong></li>
@@ -841,7 +835,6 @@
     const timerProgressEl = document.getElementById('timer-progress');
     const leaderboardListEl = document.getElementById('leaderboard-list');
     const nicknameInput = document.getElementById('nickname-input');
-    const saveNicknameBtn = document.getElementById('save-nickname-btn');
     const currentNicknameEl = document.getElementById('current-nickname');
 
     // UI elements to control visibility/opacity for the transition
@@ -865,15 +858,27 @@
         // Ensure game elements are hidden (or low opacity)
         gameElements.forEach(el => el.style.opacity = 0);
         
-        // Update nickname display from loaded data
+        // Update nickname display from loaded data and enable button
         updateNicknameDisplay();
+        playButton.textContent = 'PLAY GAME 🧪';
+        playButton.disabled = false;
     }
     window.showMenu = showMenu; // Attached to window for Firebase script to call
     
-    function startTransition() {
-        // --- MANDATORY NICKNAME CHECK ---
-        if (!window.nickname || window.nickname.toLowerCase() === 'guest' || window.nickname.trim() === '') {
-            displayMessage("STOP! You must set a unique nickname before starting the game. Enter one above!", 'error', 4000);
+    async function startTransition() {
+        playButton.disabled = true; // Prevent double click
+        
+        const newNicknameCandidate = nicknameInput.value.trim().substring(0, 10);
+        let finalNickname = window.nickname;
+
+        // A. Check if user entered a NEW valid nickname in the input box
+        if (newNicknameCandidate && newNicknameCandidate.toLowerCase() !== 'guest' && newNicknameCandidate.length > 0) {
+            finalNickname = newNicknameCandidate;
+        }
+
+        // B. Final check before starting
+        if (finalNickname.toLowerCase() === 'guest' || finalNickname.trim() === '') {
+            displayMessage("STOP! You must set a unique nickname before starting the game.", 'error', 4000);
             
             // Add visual cue to the nickname area
             const setupArea = document.getElementById('nickname-setup');
@@ -881,9 +886,22 @@
             setupArea.style.borderRadius = '10px';
             setTimeout(() => setupArea.style.border = 'none', 1000);
             
-            return; // BLOCK game start until nickname is set
+            playButton.disabled = false;
+            return; // BLOCK game start
         }
-        // ---------------------------------
+        
+        // C. Save the nickname if it was set or updated
+        const saveSuccess = await window.saveNickname(finalNickname);
+        
+        if (!saveSuccess) {
+            // Error already displayed by saveNickname function
+            playButton.disabled = false;
+            return;
+        }
+        
+        // Nickname is set, update UI and proceed
+        window.nickname = finalNickname;
+        updateNicknameDisplay();
         
         // 1. Hide the menu elegantly
         menuScreen.classList.add('hidden');
@@ -901,6 +919,8 @@
             
             // 6. Fade in the main game UI elements
             gameElements.forEach(el => el.style.opacity = 1);
+            
+            playButton.disabled = false; // Re-enable for next time
 
         }, 1500); // 1.5 seconds for the "START GAME" screen
     }
@@ -919,33 +939,19 @@
         msgBox.textContent = message;
         msgBox.className = `visible ${type}`;
         setTimeout(() => {
-            msgBox.className = 'hidden';
+            msgBox.className = '';
         }, duration);
     }
     window.displayMessage = displayMessage; // Attach to window
 
-    // Nickname setting logic
-    saveNicknameBtn.addEventListener('click', () => {
-        const newNickname = nicknameInput.value.trim().substring(0, 10);
-        
-        // Also prevent 'guest' (case-insensitive) as it's the default blocking term
-        if (newNickname && newNickname.toLowerCase() !== 'guest' && newNickname.length > 0) { 
-            // Call the Firebase function to save and update state
-            window.saveNickname(newNickname).then(() => {
-                // Update local state and UI after save is initiated
-                currentNicknameEl.textContent = newNickname;
-                nicknameInput.value = '';
-                displayMessage(`Nickname set to ${newNickname}!`, 'success', 3000);
-            });
-        } else {
-            displayMessage('Please enter a valid, non-default nickname (max 10 characters).', 'error');
-        }
-    });
-
     // Helper to update the nickname display when Firebase data loads
     function updateNicknameDisplay() {
-        if (window.nickname) {
+        if (window.nickname && window.nickname.toLowerCase() !== 'guest') {
             currentNicknameEl.textContent = window.nickname;
+            nicknameInput.value = window.nickname; // Pre-fill input with saved name
+        } else {
+            currentNicknameEl.textContent = 'Guest (Required to Change)';
+            nicknameInput.value = '';
         }
     }
 
@@ -1215,7 +1221,6 @@
     });
 
     // We no longer call startGame directly on load; Firebase loadData calls showMenu()
-    // window.onload = startGame; 
 </script>
 
 </body>
