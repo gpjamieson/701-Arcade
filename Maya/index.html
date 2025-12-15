@@ -1,281 +1,338 @@
-<!doctype html>
+
+Index - MA - 07MS 933550 Erin Centre MS.HTML GAME 
+Page
+1
+/
+1
+100%
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Snow Rider — Solvability Quiz Game</title>
-  <style>
-    :root{--bg:#0b1220;--snow:#eaf6ff;--accent:#3ddc97;--panel:rgba(255,255,255,0.06)}
-    html,body{height:100%;margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:linear-gradient(180deg,#071021 0%, #0b1630 100%);color:var(--snow)}
-    #gameWrap{max-width:900px;margin:24px auto;padding:12px}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    h1{font-size:20px;margin:0}
-    .controls{display:flex;gap:8px;align-items:center}
-    button{background:var(--panel);border:1px solid rgba(255,255,255,0.06);color:var(--snow);padding:8px 10px;border-radius:10px;cursor:pointer}
-    canvas{display:block;width:100%;height:540px;border-radius:12px;background:linear-gradient(#0e1b2f,#071428)}
-    .hud{display:flex;gap:12px;align-items:center;margin-top:8px}
-    .hud .item{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px}
+    <meta charset="UTF-8">
+    <title>Solu-Dash: Solubility Jump Game</title>
+    
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-    /* Question modal */
-    #questionModal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);min-width:320px;background:rgba(10,16,28,0.96);border-radius:14px;padding:18px;box-shadow:0 6px 30px rgba(0,0,0,0.6);display:none;z-index:40;border:1px solid rgba(255,255,255,0.06)}
-    #questionModal h2{margin:0 0 8px 0;font-size:18px}
-    .answers{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-    .answer-btn{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);cursor:pointer}
-    .answer-btn:hover{transform:translateY(-2px)}
-    #overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:none;z-index:30}
+        #gameCanvas {
+            border: 5px solid #00F; /* Blue border for a 'chemical' look */
+            background-color: #222;
+            z-index: 1; 
+            box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+        }
 
-    footer{margin-top:12px;font-size:13px;color:rgba(234,246,255,0.7)}
-    @media (max-width:600px){canvas{height:420px}}
-  </style>
+        #gameOverlay {
+            position: absolute;
+            color: white;
+            text-align: center;
+            pointer-events: none; /* Allows clicks/key presses to pass to the game */
+            z-index: 2; 
+        }
+
+        #questionText {
+            font-size: 28px;
+            color: #4CAF50; /* Green for success/question */
+            text-shadow: 1px 1px 3px black;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        #scoreText {
+            font-size: 20px;
+            color: #FFD700; /* Gold for score */
+        }
+    </style>
 </head>
 <body>
-  <div id="gameWrap">
-    <header>
-      <h1>Snow Rider — Quiz on Collision</h1>
-      <div class="controls">
-        <button id="startBtn">Start</button>
-        <button id="pauseBtn">Pause</button>
-        <button id="muteBtn">Mute</button>
-      </div>
-    </header>
 
-    <canvas id="gameCanvas" width="1200" height="700"></canvas>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
 
-    <div class="hud">
-      <div class="item">Score: <span id="score">0</span></div>
-      <div class="item">Level: <span id="level">1</span></div>
-      <div class="item">Lives: <span id="lives">3</span></div>
-      <div class="item">Speed: <span id="speed">1</span></div>
+    <div id="gameOverlay">
+        <p id="scoreText">Score: 0</p>
+        <h2 id="questionText">Press SPACE to Start!</h2>
     </div>
 
-    <footer>Controls: ← / → to move, Space to jump. Touch: tap left/right side of screen. Answer quiz to continue when you hit an obstacle.</footer>
-  </div>
+    <script>
+        // Get the canvas and its 2D context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const questionDisplay = document.getElementById('questionText');
 
-  <div id="overlay"></div>
-  <div id="questionModal" role="dialog" aria-modal="true">
-    <h2 id="qText">Question</h2>
-    <div id="qHint" style="font-size:13px;color:rgba(234,246,255,0.7);">Solve to continue</div>
-    <div class="answers" id="answers"></div>
-  </div>
+        // Game constants
+        const GRAVITY = 0.8;
+        const JUMP_STRENGTH = -15;
+        const GAME_SPEED = 4;
+        const GROUND_Y = canvas.height - 30;
 
-<script>
-(() => {
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const startBtn = document.getElementById('startBtn');
-  const pauseBtn = document.getElementById('pauseBtn');
-  const muteBtn = document.getElementById('muteBtn');
-  const scoreEl = document.getElementById('score');
-  const levelEl = document.getElementById('level');
-  const livesEl = document.getElementById('lives');
-  const speedEl = document.getElementById('speed');
+        // Game state variables
+        let isGameRunning = false;
+        let score = 0;
+        let player = {
+            x: 50,
+            y: GROUND_Y - 20, 
+            width: 20,
+            height: 20,
+            velocityY: 0,
+            isJumping: false
+        };
+        let obstacles = [];
+        let solubilityQuestion = null;
+        let answerPathY = null; // The y-coordinate of the correct path to generate
+        let questionActive = false; // Flag to pause generation during question phase
 
-  const overlay = document.getElementById('overlay');
-  const qModal = document.getElementById('questionModal');
-  const qText = document.getElementById('qText');
-  const qHint = document.getElementById('qHint');
-  const answersWrap = document.getElementById('answers');
+        // --- Solubility Question Data ---
+        // 'Yes' = Soluble/Precipitate, 'No' = Insoluble/Dissolves
+        // pathY: The vertical position (Y coordinate) of the CORRECT path.
+        const SOLUBILITY_QUESTIONS = [
+            {
+                question: "Is $\text{KNO}_3$ soluble in water? (Yes/No)",
+                correctAnswer: "Yes",
+                pathY: 250 // Lower path
+            },
+            {
+                question: "Is $\text{AgCl}$ soluble in water? (Yes/No)",
+                correctAnswer: "No",
+                pathY: 150 // Higher path
+            },
+            {
+                question: "Will $\text{BaSO}_4$ precipitate when $\text{BaCl}_2$ and $\text{Na}_2\text{SO}_4$ are mixed?",
+                correctAnswer: "Yes", // The $\text{BaSO}_4$ precipitate means Yes
+                pathY: 250
+            },
+            {
+                question: "Is $\text{Ca}(\text{OH})_2$ considered soluble (slightly)? (Yes/No)",
+                correctAnswer: "Yes",
+                pathY: 150
+            },
+            {
+                question: "Will any alkali metal salt precipitate? (Yes/No)",
+                correctAnswer: "No", // Alkali metals are always soluble
+                pathY: 250
+            }
+        ];
+        // --- End Question Data ---
+        
+        // --- Core Physics and Drawing ---
+        
+        function updatePlayer() {
+            // Apply gravity
+            player.velocityY += GRAVITY;
+            player.y += player.velocityY;
 
-  // ---- NEW SOUNDS ----
-  const sndHit = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_6c403c4b19.mp3');
-  const sndCorrect = new Audio('https://cdn.pixabay.com/audio/2022/03/10/audio_4bfbeb2c1a.mp3');
-  const sndWrong = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_4e61327f0b.mp3');
-  const sndJump = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_2ca7aaa0c2.mp3');
+            // Check collision with the ground
+            if (player.y > GROUND_Y - player.height) {
+                player.y = GROUND_Y - player.height;
+                player.velocityY = 0;
+                player.isJumping = false;
+            }
+        }
 
-  let W = canvas.width = 1200;
-  let H = canvas.height = 700;
-  let running = false;
-  let paused = false;
-  let muted = false;
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  let player = {x:200,y:520,w:60,h:60,vy:0,onGround:true};
-  let gravity = 1.9;
-  let obstacles = [];
-  let particles = [];
-  let spawnTimer = 0;
-  let spawnInterval = 120;
-  let baseSpeed = 4;
-  let speedMultiplier = 1;
-  let frame = 0;
-  let score = 0;
-  let level = 1;
-  let lives = 3;
+            // Draw the ground
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
 
-  let awaitingAnswer = false;
-  let currentQuestion = null;
+            // Draw the player (ion particle)
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
 
-  // ---- REPLACED QUESTIONS (SOLUBILITY ONLY, EASY) ----
-  const solubilityData = [
-    {q:'Is NaCl soluble in water?', a:'Yes', c:['Yes','No']},
-    {q:'Is AgCl soluble in water?', a:'No', c:['Yes','No']},
-    {q:'Is sugar (sucrose) soluble in water?', a:'Yes', c:['Yes','No']},
-    {q:'Does salt dissolve faster in hot water?', a:'Yes', c:['Yes','No']},
-    {q:'Is sand soluble in water?', a:'No', c:['Yes','No']},
-    {q:'Is baking soda soluble in water?', a:'Yes', c:['Yes','No']},
-    {q:'Does stirring make solutes dissolve faster?', a:'Yes', c:['Yes','No']}
-  ];
-  function randomQuestion(){ return solubilityData[Math.floor(Math.random()*solubilityData.length)]; }
+            // Draw obstacles
+            obstacles.forEach(obs => {
+                ctx.fillStyle = obs.color; // Use defined color (red for hazard, blue for path)
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            });
+        }
+        
+        // --- Obstacle and Collision Logic ---
 
-  function spawnObstacle(){
-    const h = 40 + Math.random()*60;
-    const type = Math.random()<0.5 ? 'rock' : 'tree';
-    obstacles.push({x:W+80,y:580-h,w:40,h,tag:type});
-  }
+        function updateObstacles() {
+            if (questionActive) return; // Stop movement during question display
 
-  function update(){
-    if(!running || paused || awaitingAnswer) return;
-    frame++;
+            // Move all obstacles to the left
+            obstacles.forEach(obs => {
+                obs.x -= GAME_SPEED;
+            });
 
-    // more levels
-    if(frame % 1000 === 0){ level++; speedMultiplier += 0.25; spawnInterval = Math.max(60, spawnInterval - 5) }
+            // Remove off-screen obstacles
+            obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
 
-    spawnTimer++;
-    if(spawnTimer>spawnInterval){ spawnTimer=0; spawnObstacle(); }
+            // Simple obstacle generation based on the set path
+            if (obstacles.length < 50 && answerPathY !== null) {
+                // Generate obstacles only on the 'wrong' path to force the player into the correct one
+                const wrongPathY = (answerPathY === 250) ? 150 : 250;
+                
+                // Add spikes to the wrong path
+                if (Math.random() < 0.1) {
+                    obstacles.push({ 
+                        x: canvas.width, 
+                        y: wrongPathY, 
+                        width: 30, 
+                        height: 30, 
+                        color: '#F00' // Red Spikes (Insoluble/Wrong)
+                    }); 
+                }
+            }
+            
+            // Trigger a new question when few obstacles remain
+            if (obstacles.length === 0 && answerPathY !== null) {
+                 answerPathY = null; // Clear the path
+                 loadNewQuestion();
+            }
+        }
 
-    player.vy += gravity;
-    player.y += player.vy;
-    if(player.y > 520){ player.y=520; player.vy=0; player.onGround=true }
+        function checkCollisions() {
+            return obstacles.some(obs => 
+                player.x < obs.x + obs.width &&
+                player.x + player.width > obs.x &&
+                player.y < obs.y + obs.height &&
+                player.y + player.height > obs.y
+            );
+        }
+        
+        // --- Solubility Game Logic ---
+        
+        function loadNewQuestion() {
+            questionActive = true;
+            // Pick a random question
+            const qIndex = Math.floor(Math.random() * SOLUBILITY_QUESTIONS.length);
+            solubilityQuestion = SOLUBILITY_QUESTIONS[qIndex];
+            
+            // Display the question (Using unicode characters for chemical look)
+            questionDisplay.innerHTML = solubilityQuestion.question.replace(/\\text\{(\w+)\}/g, '$1').replace(/_/g, '<sub>').replace(/\^/g, '<sup>') + 
+                "<br> (Jump to the high path for 'No', Stay low for 'Yes')";
+            
+            // Generate the two initial, safe pathways for choice
+            generateInitialChoicePaths(SOLUBILITY_QUESTIONS.find(q => q.correctAnswer === 'Yes').pathY, SOLUBILITY_QUESTIONS.find(q => q.correctAnswer === 'No').pathY);
+        }
 
-    for(let i=obstacles.length-1;i>=0;i--){
-      obstacles[i].x -= baseSpeed * speedMultiplier;
-      if(obstacles[i].x + obstacles[i].w < -100) obstacles.splice(i,1);
-    }
+        function generateInitialChoicePaths(yYes, yNo) {
+            obstacles = []; // Clear existing for the new setup
 
-    for(let ob of obstacles){
-      if(rectIntersect(player,ob)){
-        if(!muted) sndHit.play();
-        awaitQuestionFor(ob);
-        break;
-      }
-    }
+            // Obstacles that create the two distinct, safe paths for choosing.
+            // These should NOT cause collisions if the player is on them.
+            
+            // Path for 'No' (Insoluble/Precipitate): Higher Y (150)
+            obstacles.push({ x: canvas.width, y: yNo - 10, width: 200, height: 10, color: '#39F' }); 
+            // Path for 'Yes' (Soluble/Dissolves): Lower Y (250)
+            obstacles.push({ x: canvas.width, y: yYes - 10, width: 200, height: 10, color: '#39F' }); 
+        }
+        
+        function checkAnswer() {
+            if (!solubilityQuestion) return;
 
-    for(let i=particles.length-1;i>=0;i--){
-      const p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--; p.vy += 0.1;
-      if(p.life<=0) particles.splice(i,1);
-    }
+            // Determine if the player is closer to the 'Yes' path or the 'No' path
+            const yYes = SOLUBILITY_QUESTIONS.find(q => q.correctAnswer === 'Yes').pathY;
+            const yNo = SOLUBILITY_QUESTIONS.find(q => q.correctAnswer === 'No').pathY;
 
-    score += 0.03 * speedMultiplier;
-    scoreEl.textContent = Math.floor(score);
-    levelEl.textContent = level;
-    livesEl.textContent = lives;
-    speedEl.textContent = (speedMultiplier).toFixed(2);
-  }
+            // Player's center Y coordinate
+            const playerCenterY = player.y + (player.height / 2);
 
-  function rectIntersect(a,b){ return !(a.x+a.w < b.x || a.x > b.x+b.w || a.y+a.h < b.y || a.y > b.y+b.h); }
+            let chosenAnswer;
+            // Simplified check: If player is higher than the midpoint, they chose 'No'
+            if (playerCenterY < (yYes + yNo) / 2) {
+                 chosenAnswer = (yNo === solubilityQuestion.pathY) ? "No" : "Yes";
+            } else {
+                 chosenAnswer = (yYes === solubilityQuestion.pathY) ? "Yes" : "No";
+            }
+            
+            // Set the path to follow based on the answer
+            if (chosenAnswer === solubilityQuestion.correctAnswer) {
+                questionDisplay.innerHTML = `CORRECT! Navigating the ${chosenAnswer} path...`;
+                answerPathY = solubilityQuestion.pathY;
+            } else {
+                // If they chose the wrong path, they hit the instant death spikes that are generated on the wrong path!
+                questionDisplay.innerHTML = `INCORRECT! Game Over. Press SPACE to Restart. (Correct: ${solubilityQuestion.correctAnswer})`;
+                isGameRunning = false;
+                return;
+            }
 
-  function awaitQuestionFor(ob){
-    awaitingAnswer = true;
-    paused = true;
-    currentQuestion = randomQuestion();
-    showQuestionModal(currentQuestion, (correct) => {
-      overlay.style.display='none'; qModal.style.display='none';
-      awaitingAnswer = false; paused = false;
+            questionActive = false; // Resume game movement
+            solubilityQuestion = null;
+        }
 
-      if(correct){
-        if(!muted) sndCorrect.play();
-        const idx = obstacles.indexOf(ob); if(idx!==-1) obstacles.splice(idx,1);
-        score += 30 * level;
-        createParticles(ob.x, ob.y, 20);
-      } else {
-        if(!muted) sndWrong.play();
-        lives -= 1;
-        createParticles(player.x, player.y, 30);
-        if(lives<=0){ gameOver(); }
-      }
-    });
-  }
+        // --- Game Flow Control ---
 
-  function showQuestionModal(q,cb){
-    overlay.style.display='block'; qModal.style.display='block';
-    qText.textContent = q.q;
-    qHint.textContent = 'Solubility Question';
+        function startGame() {
+            isGameRunning = true;
+            score = 0;
+            player.y = GROUND_Y - player.height;
+            player.velocityY = 0;
+            player.isJumping = false;
+            questionActive = false;
+            answerPathY = null;
+            obstacles = [];
+            
+            // Start with the first question
+            loadNewQuestion();
+        }
 
-    answersWrap.innerHTML = '';
-    q.c.forEach(choice => {
-      const b = document.createElement('button');
-      b.className='answer-btn';
-      b.textContent=choice;
-      b.onclick = () => cb(choice===q.a);
-      answersWrap.appendChild(b);
-    });
-  }
+        function gameLoop() {
+            if (!isGameRunning) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
 
-  function createParticles(x,y,n){
-    for(let i=0;i<n;i++){
-      particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-1.5)*6,life:20+Math.random()*30})
-    }
-  }
+            // 1. Update Logic
+            if (!questionActive) {
+                updatePlayer();
+                updateObstacles();
+            }
 
-  function gameOver(){ running=false; paused=true; alert('Game over! Score: '+Math.floor(score)); resetGame(); }
+            // 2. Collision Check (Only when actively moving)
+            if (!questionActive && checkCollisions()) {
+                questionDisplay.innerHTML = "CRASH! Game Over. Press SPACE to Restart.";
+                isGameRunning = false;
+            }
+            
+            // 3. Drawing (Rendering)
+            draw();
 
-  function resetGame(){
-    player={x:200,y:520,w:60,h:60,vy:0,onGround:true}; obstacles=[]; particles=[];
-    frame=0; score=0; level=1; lives=3; speedMultiplier=1; spawnInterval=120;
-    running=false; paused=false;
-  }
+            // 4. Score Update (Only update when actively playing the level)
+            if (answerPathY !== null) {
+                score++;
+                document.getElementById('scoreText').textContent = `Score: ${Math.floor(score / 10)}`;
+            }
 
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    const g = ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,'#0b2036'); g.addColorStop(1,'#041426');
-    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 
-    drawMountains();
+            // Loop the game
+            requestAnimationFrame(gameLoop);
+        }
 
-    ctx.fillStyle = '#0b2b2f'; ctx.fillRect(0,580,W,120);
+        // --- Input Handler ---
 
-    for(let ob of obstacles){ drawObstacle(ob); }
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!isGameRunning) {
+                    startGame();
+                } else if (!player.isJumping && !questionActive) {
+                    // Standard Jump
+                    player.velocityY = JUMP_STRENGTH;
+                    player.isJumping = true;
+                } else if (questionActive && !player.isJumping) {
+                    // Trigger Answer Check when on a path and not mid-air
+                    player.velocityY = JUMP_STRENGTH; // Jump to select the path
+                    player.isJumping = true;
+                    // Check answer after a brief moment or at end of choice section
+                    setTimeout(checkAnswer, 300); // Give player time to move up
+                }
+            }
+        });
 
-    drawPlayer();
-
-    for(let p of particles){ ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fillRect(p.x,p.y,3,3); }
-
-    if(!running){ ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(0,0,W,H);
-      ctx.fillStyle='#fff'; ctx.font='34px Arial'; ctx.fillText('PAUSED', W/2-70, H/2);
-    }
-  }
-
-  function drawObstacle(ob){
-    if(ob.tag==='rock'){
-      ctx.fillStyle='#777';
-      ctx.fillRect(ob.x, ob.y-ob.h/2, ob.w, ob.h);
-    } else {
-      ctx.fillStyle='#0f7a2a';
-      ctx.fillRect(ob.x, ob.y-ob.h/2, ob.w, ob.h);
-    }
-  }
-
-  function drawPlayer(){
-    ctx.save(); ctx.translate(player.x+player.w/2, player.y+player.h/2);
-    ctx.fillStyle='#3ddc97'; ctx.fillRect(-player.w/2,-player.h/2,player.w,player.h);
-    ctx.restore();
-  }
-
-  function drawMountains(){
-    ctx.fillStyle='#0f2d42'; ctx.beginPath(); ctx.moveTo(0,520); ctx.lineTo(160,320); ctx.lineTo(340,520); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#0b2840'; ctx.beginPath(); ctx.moveTo(280,520); ctx.lineTo(420,300); ctx.lineTo(640,520); ctx.closePath(); ctx.fill();
-  }
-
-  function loop(){ update(); draw(); requestAnimationFrame(loop); }
-
-  window.addEventListener('keydown', e => {
-    if(e.code==='Space' && player.onGround){ player.vy=-18; player.onGround=false; if(!muted) sndJump.play(); }
-    if(e.code==='ArrowLeft'){ player.x=Math.max(20,player.x-12); }
-    if(e.code==='ArrowRight'){ player.x=Math.min(W-player.w-20,player.x+12); }
-  });
-
-  canvas.addEventListener('touchstart', e => {
-    const t=e.touches[0]; const rect=canvas.getBoundingClientRect(); const x=t.clientX-rect.left;
-    if(x < rect.width/2) player.x=Math.max(20,player.x-18);
-    else player.x=Math.min(W-player.w-20,player.x+18);
-  });
-
-  startBtn.onclick = () => { if(!running){ running=true; paused=false; resetGame(); } };
-  pauseBtn.onclick = () => { paused=!paused; }
-  muteBtn.onclick = () => { muted=!muted; muteBtn.textContent = muted? 'Unmute':'Mute'; }
-
-  loop();
-})();
-</script>
+        // Start the game loop immediately to draw the initial state
+        requestAnimationFrame(gameLoop);
+    </script>
 </body>
 </html>
+Displaying Index - MA - 07MS 933550 Erin Centre MS.HTML GAME .
